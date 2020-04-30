@@ -195,7 +195,7 @@ def getInactivePokemon(browser):
                     else:
                         moves[i] = moves[i][1:]
                     m['move'] = moves[i]
-                    m['accuracy'],m['power'],m['pp'],m['type'],m['Atk'],m['Def'],m['SpA'],m['Spd'],m['Spe'] = movedex.getMoveDeets(move)
+                    m['accuracy'],m['power'],m['pp'],m['type'],m['Atk'],m['Def'],m['SpA'],m['Spd'],m['Spe'] = movedex.getMoveDeets(moves[i])
 
                     m['type'] = typedex.getTypeOhe(m['type'])
                     mov.append(m)
