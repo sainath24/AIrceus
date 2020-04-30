@@ -6,6 +6,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
+import movedex
+import typedex
 
 def getActivePokemon(browser):
     active_pokemon = WebDriverWait(browser, 60).until(EC.presence_of_element_located((By.NAME, "chooseDisabled")))#browser.find_element_by_name('chooseDisabled')
@@ -41,13 +43,13 @@ def getActivePokemon(browser):
         level = int(name_level[-1][1:]) #level
         pokemon['level'] = level
         print('Level:' + str(level))
-        type = []
+        p_type = []
         for t in type_list:
             if t.get_attribute('alt') != 'M' and t.get_attribute('alt') != 'F':
-                type.append(t.get_attribute('alt'))
+                p_type.append(typedex.getTypeOhe(t.get_attribute('alt')))
 
-        pokemon['type'] = type
-        print('Type:' + str(type))
+        pokemon['type'] = p_type
+        print('Type:' + str(p_type))
 
 
         stats = stats.find_elements_by_xpath('.//p')
@@ -95,8 +97,11 @@ def getActivePokemon(browser):
                     move_type = x[1]
                     move_pp = int(x[2].split('/')[0])
                     m['move'] = move
-                    m['move_type'] = move_type
-                    m['move_pp'] = move_pp
+                    # call movedex for deets
+                    m['accuracy'],m['power'],m['pp'],m['type'],m['Atk'],m['Def'],m['SpA'],m['Spd'],m['Spe'] = movedex.getMoveDeets(move)
+                    # TODO: use type ohe
+                    m['type'] = typedex.getTypeOhe(m['type'])
+                    m['pp'] = move_pp
                     moves.append(m)
                 
                 pokemon['moves'] = moves
@@ -134,13 +139,13 @@ def getInactivePokemon(browser):
         level = int(name_level[-1][1:]) #level
         pokemon['level'] = level
         print('Level:' + str(level))
-        type = []
+        p_type = []
         for t in type_list:
             if t.get_attribute('alt') != 'M' and t.get_attribute('alt') != 'F':
-                type.append(t.get_attribute('alt'))
+                p_type.append(typedex.getTypeOhe(t.get_attribute('alt')))
 
-        pokemon['type'] = type
-        print('Type:' + str(type))
+        pokemon['type'] = p_type
+        print('Type:' + str(p_type))
 
 
         stats = stats.find_elements_by_xpath('.//p')
@@ -190,8 +195,9 @@ def getInactivePokemon(browser):
                     else:
                         moves[i] = moves[i][1:]
                     m['move'] = moves[i]
-                    m['move_type'] = None
-                    m['move_pp'] = None
+                    m['accuracy'],m['power'],m['pp'],m['type'],m['Atk'],m['Def'],m['SpA'],m['Spd'],m['Spe'] = movedex.getMoveDeets(move)
+
+                    m['type'] = typedex.getTypeOhe(m['type'])
                     mov.append(m)
 
                 pokemon['moves'] = mov
@@ -207,16 +213,61 @@ def getInactivePokemon(browser):
 def getActiveEnemyPokemon(browser):
     pokemon = {}
     actions = ActionChains(browser)
-    divs = None
-    divs = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "tooltips")))#browser.find_element_by_class_name('tooltips')
-    if divs == None:
+    moved = False
+    try:
+        divs = WebDriverWait(browser, 30).until(EC.presence_of_element_located((By.CLASS_NAME, "tooltips")))#browser.find_element_by_class_name('tooltips')
+    except:
+        print('Enemy active pokemon not found')
         return None
+
+    
     divs = divs.find_elements_by_class_name('has-tooltip')
     for x in divs:
         if x.get_attribute('data-tooltip') == 'activepokemon|1|0':
+
+            # GET STATS
+            pokemon['Atk'] = 1.0
+            pokemon['Def'] = 1.0
+            pokemon['SpA'] = 1.0
+            pokemon['SpD'] = 1.0
+            pokemon['Spe'] = 1.0
+
+            try:
+                status = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.CLASS_NAME, "status")))
+                bads = WebDriverWait(status, 1).until(EC.presence_of_all_elements_located((By.CLASS_NAME, "bad")))
+                for bad in bads:
+                    bad_list = bad.text.split('×')
+                    bad_amount = float(bad_list[0])
+                    bad_stat = bad_list[1][1:]
+                    print('ENEMY BAD STAT:' + str(bad_stat) + ' ' + str(bad_amount))
+                    pokemon[bad_stat] = bad_amount
+
+            except Exception as e:
+                print('\nException, no BAD status found for active enemy pokemon\n')
+
+            try:
+                status = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.CLASS_NAME, "status")))
+                goods = WebDriverWait(status, 1).until(EC.presence_of_all_elements_located((By.CLASS_NAME, "good")))
+                for good in goods:
+                    good_list = good.text.split('×')
+                    print(good_list)
+                    good_amount = float(good_list[0])
+                    good_stat = good_list[1][1:]
+                    print('ENEMY GOOD STAT:' + str(good_stat) + ' ' + str(good_amount))
+                    pokemon[good_stat] = good_amount
+
+            except Exception as e:
+                print(e)
+                print('\nException, no GOOD status found for active enemy pokemon\n')
+
+
             actions.move_to_element(x).perform()
+            moved = True
             break
 
+    if moved == False:
+        print('Enemy active pokemon not found')
+        return None
 
     stats = browser.find_element_by_class_name('tooltip')
     name_level = stats.find_element_by_xpath('.//h2')
@@ -233,13 +284,13 @@ def getActiveEnemyPokemon(browser):
     level = int(name_level[-1][1:]) #level
     pokemon['level'] = level
     print('Level:' + str(level))
-    type = []
+    p_type = []
     for t in type_list:
         if t.get_attribute('alt') != 'M' and t.get_attribute('alt') != 'F':
-            type.append(t.get_attribute('alt'))
+            p_type.append(typedex.getTypeOhe(t.get_attribute('alt')))
 
-    pokemon['type'] = type
-    print('Type:' + str(type))
+    pokemon['type'] = p_type
+    print('Type:' + str(p_type))
 
     stats = stats.find_elements_by_xpath('.//p')
 
@@ -275,32 +326,7 @@ def getActiveEnemyPokemon(browser):
                 pokemon['to_spe'] = to_spe
 
                 print('Stats: spe ' + str(pokemon['from_spe']) + ' to ' + str(pokemon['to_spe']))
-    
-    pokemon['Atk'] = 1.0
-    pokemon['Def'] = 1.0
-    pokemon['SpA'] = 1.0
-    pokemon['SpD'] = 1.0
-    pokemon['Spe'] = 1.0
-
-    try:
-        status = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.CLASS_NAME, "status")))
-        bads = WebDriverWait(status, 1).until(EC.presence_of_element_located((By.CLASS_NAME, "bad")))
-        for bad in bads:
-            bad_list = bad.text.split('x')
-            bad_amount = float(bad_list[0])
-            bad_stat = bad_list[1].split(';')[1]
-            pokemon[bad_stat] = bad_amount
-
-        goods = WebDriverWait(status, 1).until(EC.presence_of_element_located((By.CLASS_NAME, "good")))
-        for good in goods:
-            good_list = good.text.split('x')
-            good_amount = float(good_list[0])
-            good_stat = good_list[1].split(';')[1]
-            pokemon[good_stat] = good_amount
-
-    except Exception as e:
-        print('Exception, no status found for active enemy pokemon\n')
-    
+        # TODO: maybe get moves of enemy pokemon
 
     return pokemon
 
@@ -308,12 +334,16 @@ def getEnemyPokemonList(browser):
     enemy_pokemon = []
     actions = ActionChains(browser)
     rightbar = WebDriverWait(browser, 30).until(EC.presence_of_element_located((By.CLASS_NAME, "rightbar")))#browser.find_element_by_class_name('rightbar')
-    team = rightbar.find_elements_by_class_name('picon has-tooltip')
+    team = rightbar.find_elements_by_class_name('picon')
 
+    print('\nENEMY POKEMON LIST COUNT:' + str(len(team)))
+
+    faintedCount = 0
     for p in team:
+        if 'pokemonicons-pokeball-sheet' in p.get_attribute('style'):
+            continue
         pokemon = {}
         hasFainted = False
-        faintedCount = 0
         actions.move_to_element(p).perform()
         stats = browser.find_element_by_class_name('tooltip')
         name_level = stats.find_element_by_xpath('.//h2')
@@ -332,19 +362,20 @@ def getEnemyPokemonList(browser):
         level = int(name_level[-1][1:]) #level
         pokemon['level'] = level
         print('Level:' + str(level))
-        type = []
+        p_type = []
         for t in type_list:
             if t.get_attribute('alt') != 'M' and t.get_attribute('alt') != 'F':
-                type.append(t.get_attribute('alt'))
+                p_type.append(typedex.getTypeOhe(t.get_attribute('alt')))
 
-        pokemon['type'] = type
-        print('Type:' + str(type))
+        pokemon['type'] = p_type
+        print('Type:' + str(p_type))
 
         stats = stats.find_elements_by_xpath('.//p')
 
         for i in range(len(stats)):
             if i==0: #hp
-                if stats[i].text.contains('fainted'):
+                if 'fainted' in stats[i].text:
+                    print('\nEnemy pokemon fainted: ' + str(pokemon['name']))
                     hasFainted = True
                     faintedCount+=1
                     break
@@ -379,32 +410,28 @@ def getEnemyPokemonList(browser):
 
                     print('Stats: spe ' + str(pokemon['from_spe']) + ' to ' + str(pokemon['to_spe']))
 
+            # TODO: maybe get enemey pokemon moves
+
         if hasFainted == False:
             pokemon['Atk'] = 1.0
             pokemon['Def'] = 1.0
             pokemon['SpA'] = 1.0
             pokemon['SpD'] = 1.0
             pokemon['Spe'] = 1.0
-
-            try:
-                status = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.CLASS_NAME, "status")))#browser.find_element_by_class_name('status')
-                bads = WebDriverWait(status, 1).until(EC.presence_of_element_located((By.CLASS_NAME, "bad")))#browser.find_elements_by_class_name('bad')
-                for bad in bads:
-                    bad_list = bad.text.split(x)
-                    bad_amount = float(bad_list[0])
-                    bad_stat = bad_list[1].split(';')[1]
-                    pokemon[bad_stat] = bad_amount
-
-                goods = WebDriverWait(status, 1).until(EC.presence_of_element_located((By.CLASS_NAME, "good")))#browser.find_elements_by_class_name('good')
-                for good in goods:
-                    good_list = good.text.split(x)
-                    good_amount = float(good_list[0])
-                    good_stat = good_list[1].split(';')[1]
-                    pokemon[good_stat] = good_amount
-                enemy_pokemon.append(pokemon)
-            except Exception as e:
-                print('Exception no status found for enemy inactive pokemon\n')
+            
     return enemy_pokemon,faintedCount
-        
+
+def getFaintedPokemonNumber(browser):
+    faintCount = 0
+    fainted_pokemon = WebDriverWait(browser, 60).until(EC.presence_of_all_elements_located((By.NAME, "chooseDisabled")))#browser.find_element_by_name('chooseDisabled')
+    actions = ActionChains(browser)
+    print('\nNon Choosable pokemon:' + str(fainted_pokemon.text))
+
+    for p in fainted_pokemon:
+        if 'fainted' in p.get_attribute('value').split(','):
+            faintCount+=1
+
+    return faintCount
+
 
 
