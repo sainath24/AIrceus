@@ -34,7 +34,8 @@ def getMoveDeets(move):
 
     if len(stat_changes) > 0:
         for change in stat_changes:
-            stats[stats_lookup[change.stat]] = change.change
+            # print(stat_lookup['attack'])
+            stats[stat_lookup[str(change.stat)]] = change.change
     print(stat_changes)
 
     move_type = move.type
