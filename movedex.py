@@ -1,15 +1,18 @@
 import pokebase as pb
 
 stat_lookup = {
-    'defence' : 'Def',
+    'defense' : 'Def',
     'attack' : 'Atk',
     'special-attack' : 'SpA',
-    'special-defence' : 'SpD',
+    'special-defense' : 'SpD',
     'speed' : 'Spe'
 }
 
 
 def getMoveDeets(move):
+
+    
+
     stats = {
         'Atk' : 0,
         'Def' : 0,
@@ -18,6 +21,9 @@ def getMoveDeets(move):
         'Spe' : 0
     }
     move = move.lower().replace(' ','-')
+    if 'hidden-power' in move:
+        move = 'hidden-power'
+    print('\nMOVEDEX REQUEST:' + move)
     move = pb.move(move)
 
     accuracy = move.accuracy
@@ -36,8 +42,8 @@ def getMoveDeets(move):
         for change in stat_changes:
             # print(stat_lookup['attack'])
             stats[stat_lookup[str(change.stat)]] = change.change
-    print(stat_changes)
+    # print(stat_changes)
 
-    move_type = move.type
+    move_type = str(move.type)
     
     return accuracy,power,pp,move_type,stats['Atk'],stats['Def'],stats['SpA'],stats['SpD'],stats['Spe']
