@@ -1,4 +1,5 @@
 typedex = {
+    'nil' : [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
     'normal' : [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     'fighting' : [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
     'flying' : [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],
@@ -20,6 +21,7 @@ typedex = {
 }
 
 def getTypeOhe(m_type):
+    print('TYPEDEX REQUEST: ' + m_type)
     m_type = m_type.lower()
     if m_type in typedex.keys():
         return typedex[m_type]
