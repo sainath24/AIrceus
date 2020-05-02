@@ -7,10 +7,25 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
 import pokemon_data as pd
+import gen_state
+import brains
+import gen_reward
+import torch
 
 my_pokemon = []
 enemy_pokemon = []
 opp_pokemon = None
+superstates = []
+next_superstates = []
+pokemon_actions = []
+rewards = []
+is_done = []
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print('\nDEVICE: ' + str(device) + '\n')
+
+agent = brains.Brain(device=device)
+target_network = brains.Brain(device=device)
 
 browser = webdriver.Edge('C:/Users/saina/Files/projects/PokemonShowdownAI/edge_driver/msedgedriver.exe')
 browser.get('https://play.pokemonshowdown.com/')
@@ -67,7 +82,7 @@ print('My_Pokemon: ' + str(my_pokemon))
 
 # GET ACTIVE ENEMY POKEMON
 opp_pokemon = pd.getActiveEnemyPokemon(browser)
-print(opp_pokemon)
+# print(opp_pokemon)
 
 # GAME OBJECT CONAINS INFO ABOUT CURRENT GAME, yes i know its not an object and its a dictionary
 game = {
@@ -83,7 +98,53 @@ game = {
 # TODO:
 # MAKE INITIAL STATE
 # LET AI MAKE THE FIRST MOVE OUTSIDE THE MAIN WHILE
+active_moves = pd.getCurrentActiveMoves(browser) 
+isSwitchPossible = pd.isSwitchPossible(browser)
 
+must_attack = True if isSwitchPossible == False else False
+must_switch = False
+
+state = {}
+state['must_attack'] = must_attack
+state['must_switch'] = must_switch
+state['state'] = gen_state.generateSuperState(active_pokemon,active_moves,my_pokemon,opp_pokemon,game)
+superstates.append(state)
+
+
+# AI MAKES FIRST MOVE HERE
+decision_q,move_q,switch_q = agent.startForward(state['state'],must_switch,must_attack)
+move_chosen = move_q.argmax()
+switch_chosen = switch_q.argmax()
+
+decision, explore = agent.sample_action(decision_q,len(active_moves),len(my_pokemon))
+
+if explore:
+    # CONVERT RESULT TO PROPER DECISION
+    if decision < len(active_moves):
+        move_chosen = decision
+        decision = 0
+    else:
+        switch_chosen = len(active_moves) + len(my_pokemon) - decision - 1
+        decision = 1
+
+pokemon_actions.append(decision)
+
+print('\nDECISIONNNNN:' + str(decision))
+
+if decision == 0:
+    # TODO: CLICK ON MOVE_CHOSEN
+    moves = active_pokemon['moves']
+    move = moves[move_chosen]
+    move['element'].click()
+else:
+    # TODO: CLICK ON SWITCH_CHOSEN
+    switch = my_pokemon[switch_chosen]
+    if switch['name'] == active_pokemon['name']:
+        moves = active_pokemon['moves']
+        move = moves[move_chosen]
+        move['element'].click()
+    else:
+        switch['element'].click()
 
 # MAIN LOOP THAT PLAYS THE GAME, TECHNICALLY STARTS FROM TURN 2 OF THE GAME
 while game['active']:
@@ -120,6 +181,9 @@ while game['active']:
             game['my_pokemon'] = 0
         game['active'] = False
         break
+
+    must_attack = True if isSwitchPossible == False else False
+    must_switch = False
     
     move_switch = WebDriverWait(browser, 100).until(lambda browser : browser.find_elements(By.NAME,"selectMove") or browser.find_elements(By.NAME,"selectSwitch"))#browser.find_element_by_name('selectMove') or browser.find_element_by_name('selectSwitch')
     if len(move_switch) == 0:
@@ -146,13 +210,14 @@ while game['active']:
         # check if active pokemon is dead
         #TODO: SET MUST SWITCH PARAMETER
         print('\nIn Switch\n')
+        must_switch = True
         active_pokemon_new = pd.getActivePokemon(browser)
         if active_pokemon_new['isAlive'] == False: #pokemon has fainted
             # remove active pokemon from list
             my_pokemon = [pokemon for pokemon in my_pokemon if pokemon['name'] != active_pokemon['name']]
             game['my_pokemon']-=1
             game['active_pokemon'] = None
-            print('\nAlive pokemon:' + str(game['my_pokemon']))
+            # print('\nAlive pokemon:' + str(game['my_pokemon']))
             if game['my_pokemon'] == 0:
                 game['active'] = False #GAME IS OVER
                 break
@@ -164,14 +229,62 @@ while game['active']:
         print('\nCHOOSE SWITCH\n')
 
     print('\nMAKE MOVE\n')
-    time.sleep(20)
-    print('\nMOVE OVER\n')
-    # TODO: CREATE STATE HERE?
-    # GET REWARD FOR TRANSITION
-    # ADD TO EXPERIENCE REPLAY?
+    # time.sleep(20)
+    # print('\nMOVE OVER\n')
+
+    state = {}
+    state['must_attack'] = must_attack
+    state['must_switch'] = must_switch
+    state['state'] = gen_state.generateSuperState(active_pokemon,active_moves,my_pokemon,opp_pokemon,game)
+    next_superstates.append(state)
+    is_done.append(False)
+
+    #GENERATE REWARDS
+    reward = gen_reward.genReward(superstates[-1]['state'],state['state'],game)
+    rewards.append(reward)
+
+    if len(superstates)%3 == 0: # CALCULATE LOSS AND CHANGE NETWORK EVERY THREE TURNS
+        loss = brains.compute_loss(superstates[-1:-4],pokemon_actions[-1:-4],rewards[-1:-4],is_done[-1:-4],next_superstates[-1:-4],agent,target_network,device)
+        loss.backward()
+
+    superstates.append(state)
+
+    # AI MAKES A MOVE
+    decision_q,move_q,switch_q = agent.startForward(state['state'],must_switch,must_attack)
+    move_chosen = move_q.argmax()
+    switch_chosen = switch_q.argmax()
+
+    decision, explore = agent.sample_action(decision_q,len(active_moves),len(my_pokemon))
+
+    if explore:
+        # CONVERT RESULT TO PROPER DECISION
+        if decision < len(active_moves):
+            move_chosen = decision
+            decision = 0
+        else:
+            switch_chosen = len(active_moves) + len(my_pokemon) - decision - 1
+            decision = 1
+
+    pokemon_actions.append(decision)
     
-    # TODO: THIS IS WHERE THE AI ACTUALLY MAKES A DECISION
-    # CREATE STATE USING ALL INFO GATHERED AND LET AI DECIDE
+    # TODO:FIND THE RIGHT ELEMENT TO CLICK AND THEN CLICK CAUSE DOM CHANGES
+    if decision == 0:
+        # TODO: CLICK ON MOVE_CHOSEN
+        moves = active_pokemon['moves']
+        move = moves[move_chosen]
+        move['element'].click()
+    else:
+        # TODO: CLICK ON SWITCH_CHOSEN
+        switch = my_pokemon[switch_chosen]
+        if switch['name'] == active_pokemon['name']:
+            moves = active_pokemon['moves']
+            move = moves[move_chosen]
+            move['element'].click()
+        else:
+            switch['element'].click()
+
+    print('\nMOVE OVER\n')
+    # AI DECISION ENDS
     # CLICK USING ['element'] might work cause dom might not have refreshed
 
     # ### IF POKEMON WAS SWITCHED #######
@@ -181,22 +294,31 @@ while game['active']:
 
 # END OF WHILE
 
+# CREATE FINAL STATE
+is_done.append(True)
+state = {}
+state['must_switch'] = False
+state['must_attack'] = False
+state['state'] = gen_state.generateSuperState(active_pokemon,active_moves,my_pokemon,opp_pokemon,game)
+next_superstates.append(state)
+
+reward = gen_reward.genReward(superstates[-1]['state'],state['state'],game)
+rewards.append(reward)
+
+#TODO: CALCULATE LOSS AND ADJUST NETWORK FOR THE LAST TIME FOR THIS GAME
+loss = brains.compute_loss(superstates[-1:-4],pokemon_actions[-1:-4],rewards[-1:-4],is_done[-1:-4],next_superstates[-1:-4],agent,target_network,device)
+loss.backward()
 
 # GAME IS NOT ACTIVE ANYMORE, OUTSIDE WHILE
 if game['active'] == False:
     if game['my_pokemon'] == 0 and game['enemy_pokemon'] > 0:
         print('You lost')
-        # TODO: decrease rewards, CREATE FINAL STATE
     
     elif game['my_pokemon'] > 0 and game['enemy_pokemon'] == 0:
         print('You win')
-        # TODO: increse reward, CREATE FINAL STATE
+
     else:
         print('Draw')
-        # TODO: manipulate reward, CREATE FINAL STATE
-    
-    # TODO: CREATE FINAL STATE
-
 
 else:
     print('Broke because of some error') 
