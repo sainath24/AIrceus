@@ -3,7 +3,7 @@
 # ACTIVE POKEMON LIST SIZE - 147
 # ENEMY POKEMON LIST SIZE - 45
 # TOTAL TEAM LIST SIZE - 882
-# SUPER STATE LIST SIZE - 1077
+# SUPER STATE LIST SIZE - 1076
 import typedex
 
 def getActivePokemonInfo(active_pokemon,active_moves = None):
@@ -110,7 +110,7 @@ def getActiveEnemyPokemonInfo(enemy_pokemon):
     return enp
 
 
-def generateSuperState(active_pokemon, active_moves, my_pokemon, enemy_pokemon, game):
+def generateSuperState(active_pokemon, active_moves, my_pokemon, enemy_pokemon, game, must_switch, must_attack):
     superState = []
     # ACTIVE POKEMON DETAILS
     acp =  getActivePokemonInfo(active_pokemon,active_moves) # ACTIVE POKEMON 
@@ -131,10 +131,6 @@ def generateSuperState(active_pokemon, active_moves, my_pokemon, enemy_pokemon, 
     superState.extend(team)
     superState.append(my_pokemon_count)
     superState.append(enemy_pokemon_count)
-    if game_active:
-        superState.append(1)
-    else:
-        superState.append(0)
 
     return superState
 
@@ -144,6 +140,11 @@ def generateStateForMoveChooser(superState):
     # ENEMY POKEMON LIST SIZE - 45
     # MY POKEMON COUNT AND ENEMY POKEMON COUNT - 2
     # TOTAL - 194
+    if superState == None:
+        null_state = []
+        for _ in range(194):
+            null_state.append(0)
+        return null_state
 
     state = superState[:192] # ACTIVE POKEMON AND ENEMY ACTIVE POKEMON
     state.append(superState[1074]) # MY POKTMON COUNT
@@ -157,6 +158,25 @@ def generateStateforSwitchChooser(superState):
     # TEAM SIZE - 882
     # TOTAL - 927
 
-    state = superState[147:-3]
+    if superState == None:
+        null_state = []
+        for _ in range(927):
+            null_state.append(0)
+        return null_state
+
+    state = superState[147:-2]
+    return state
+
+def generateStateforFinalChooser(movechooser, switchchooser,superState):
+    # REQUIRED: MOVECHOOSER OUTPUT, SWITCHCHOOSER OUTPUT, MY_POKEMON, ENEMY_POKEMON
+    # MOVECHOOSER SIZE - 26
+    # SWITCH CHOOSER SIZE - 147
+    # TOTAL - 175
+
+    state = movechooser
+    state.extend(switchchooser)
+    state.append(superState[1074])
+    state.append(superState[1075])
+
     return state
 
