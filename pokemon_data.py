@@ -10,19 +10,31 @@ import movedex
 import typedex
 
 def getActivePokemon(browser):
-    active_pokemon = WebDriverWait(browser, 60).until(EC.presence_of_element_located((By.NAME, "chooseDisabled")))#browser.find_element_by_name('chooseDisabled')
+
     actions = ActionChains(browser)
+    active_pokemon = None
+    # # switch_possible = isSwitchPossible(browser)
+    # # if switch_possible == False:
+    # divs = WebDriverWait(browser, 30).until(EC.presence_of_element_located((By.CLASS_NAME, "tooltips")))
+    # divs = divs.find_elements_by_class_name('has-tooltip')
+    # for x in divs:
+    #     if x.get_attribute('data-tooltip') == 'activepokemon|0|0':
+    #         active_pokemon = x
+    #         break
+    # # else:
+    active_pokemon = WebDriverWait(browser, 60).until(EC.presence_of_element_located((By.NAME, "chooseDisabled")))#browser.find_element_by_name('chooseDisabled')
+
     print('\nActive Pokemon text:' + active_pokemon.text)
 
     if 'active' in active_pokemon.get_attribute('value').split(','):
         pokemon = {}
 
         # time.sleep(3)
-        try:
-            actions.move_to_element(active_pokemon).perform()
-        except:
-            active_pokemon = WebDriverWait(browser, 60).until(EC.presence_of_element_located((By.NAME, "chooseDisabled")))#browser.find_element_by_name('chooseDisabled')
-            actions.move_to_element(active_pokemon).perform()
+        # try:
+        actions.move_to_element(active_pokemon).perform()
+        # except:
+        #     active_pokemon = WebDriverWait(browser, 60).until(EC.presence_of_element_located((By.NAME, "chooseDisabled")))#browser.find_element_by_name('chooseDisabled')
+        #     actions.move_to_element(active_pokemon).perform()
 
         pokemon['element'] = active_pokemon
 
@@ -91,11 +103,13 @@ def getActivePokemon(browser):
                 active_moves = browser.find_elements_by_name('chooseMove')
                 moves = []
                 for x in active_moves:
+                    element = x
                     x = x.text.split('\n')
                     m = {}
                     move = x[0]
-                    move_type = x[1]
-                    move_pp = int(x[2].split('/')[0])
+                    # move_type = x[1]
+                    pp_div = element.find_element_by_class_name('pp')
+                    move_pp = int(pp_div.text.split('/')[0])
                     m['move'] = move
                     # call movedex for deets
                     m['accuracy'],m['power'],m['pp'],m['type'],m['Atk'],m['Def'],m['SpA'],m['Spd'],m['Spe'] = movedex.getMoveDeets(move)
@@ -433,5 +447,80 @@ def getFaintedPokemonNumber(browser):
 
     return faintCount
 
+def getCurrentActiveMoves(browser):
+
+    try:
+        active_moves = WebDriverWait(browser,5).until(EC.presence_of_all_elements_located((By.NAME,'chooseMove')))
+        moves = []
+        for x in active_moves:
+            x = x.text.split('\n')
+            # m = {}
+            move = x[0]
+            # move_type = x[1]
+            # try:
+            #     move_pp = int(x[2].split('/')[0])
+            # except:
+            #     move_pp = 100
+            # m['move'] = move
+            # # call movedex for deets
+            # m['accuracy'],m['power'],m['pp'],m['type'],m['Atk'],m['Def'],m['SpA'],m['Spd'],m['Spe'] = movedex.getMoveDeets(move)
+            # # TODO: use type ohe
+            # m['type'] = typedex.getTypeOhe(m['type'])
+            # m['pp'] = move_pp
+            moves.append(move)
+        
+        return moves
+    except:
+        return None
+
+def isSwitchPossible(browser):
+    try: # if pokemon cannot be switch, switch bar will not be visible, get active pokemon from inbattle sprite
+        cannot_switch = WebDriverWait(browser, 2).until(EC.presence_of_element_located((By.CLASS_NAME,"switchmenu")))
+        if 'cannot switch' in cannot_switch.text:
+            return False
+        
+        return True
+    except:
+        return False
+
+def getActiveModifiedStatsAndHpFromSprite(browser):
+    actions = ActionChains(browser)
+    active_pokemon = None
+    
+    divs = WebDriverWait(browser, 30).until(EC.presence_of_element_located((By.CLASS_NAME, "tooltips")))
+    divs = divs.find_elements_by_class_name('has-tooltip')
+    for x in divs:
+        if x.get_attribute('data-tooltip') == 'activepokemon|0|0':
+            active_pokemon = x
+            break
+
+    actions.move_to_element(active_pokemon).perform()
+
+    stats = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "tooltip")))
+
+    stats = stats.find_elements_by_xpath('.//p')
+
+    atk,deff,spa,spd,spe,hp = 0,0,0,0,0,0
+
+    for i in range(len(stats)):
+        if 'HP' in stats[i].text:
+            hp = float(stats[i].text.split('%')[0][4:])
+
+        elif 'After stat modifiers:' in stats[i].text:
+            x = stats[i+1]
+            s = x.text.split('/')
+            atk = int(s[0][4:-1])
+            deff = int(s[1][5:-1])
+            spa = int(s[2][5:-1])
+            spd = int(s[3][5:-1])
+            spe = int(s[4][5:])
+            break
+    
+    return hp,atk,deff,spa,spd,spe
+
+    
+
+    
+    
 
 
