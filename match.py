@@ -24,36 +24,39 @@ username = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.NA
 username.send_keys('saroja')
 username.send_keys(Keys.ENTER) #login with a name
 
-# time.sleep(5)
 
-# battle_type_button = browser.find_element_by_name('format')
-# battle_type_button.click()
-# gen4_button = browser.find_elements_by_name('selectFormat')
+def randomBattle():
 
-# for button in gen4_button:
-#     # print('\n' + button.get_attribute('value'))
-#     if button.get_attribute('value') == 'gen4randombattle':
-#         button.click()
-#         break
+    battle_type_button = WebDriverWait(browser,30).until(browser.find_element_by_name('format'))
+    battle_type_button.click()
+    gen4_button = WebDriverWait(browser,30).until(browser.find_elements_by_name('selectFormat'))
 
-time.sleep(2)
+    for button in gen4_button:
+        # print('\n' + button.get_attribute('value'))
+        if button.get_attribute('value') == 'gen4randombattle':
+            button.click()
+            break
 
-# start battle with random opponet
-# battle_button = browser.find_element_by_name('search')
-# battle_button.click() #iniate gen 4 random battle
+    time.sleep(2)
+    # start battle with random opponet
+    battle_button = WebDriverWait(browser,5).until(browser.find_element_by_name('search'))
+    battle_button.click() #iniate gen 4 random battle
 
-# challenge known username
-# find_user_button = browser.find_element_by_name('finduser')
-# find_user_button.click()
-# username = browser.find_element_by_name('data')
-# username.send_keys('saroja2')
-# username.send_keys(Keys.ENTER)
-time.sleep(10)
+def challengeUser(username):
+    # TODO: Complete functionality
+    find_user_button = browser.find_element_by_name('finduser')
+    find_user_button.click()
+    username = browser.find_element_by_name('data')
+    username.send_keys(username)
+    username.send_keys(Keys.ENTER)
+
+# ACCEPT CHALLENGE WHILE TESTING
 accept_challenge_button = WebDriverWait(browser, 60).until(EC.presence_of_element_located((By.NAME, "acceptChallenge")))#browser.find_element_by_name('acceptChallenge')
-time.sleep(5)
 accept_challenge_button.click()
 
+time.sleep(3) # LET WEBPAGE LOAD IRRESPECTIVE OF EXPLICIT WAITS
 
+# GET AI POKEMON LIST AS WELL AS CURRENT ACTIVE POKEMON
 active_pokemon = pd.getActivePokemon(browser)
 my_pokemon.append(active_pokemon)
 
@@ -62,19 +65,27 @@ my_pokemon.extend(inactive_pokemon)
 
 print('My_Pokemon: ' + str(my_pokemon))
 
+# GET ACTIVE ENEMY POKEMON
 opp_pokemon = pd.getActiveEnemyPokemon(browser)
 print(opp_pokemon)
 
+# GAME OBJECT CONAINS INFO ABOUT CURRENT GAME, yes i know its not an object and its a dictionary
 game = {
     'active' : True,
     'forfeit' : False,
-    'active_pokemon': 0,
-    'active_pokemon_name': active_pokemon['name'],
-    'enemy_active_pokemon_name': opp_pokemon['name'],
+    'active_pokemon': active_pokemon,
+    'enemy_active_pokemon': opp_pokemon,
     'enemy_pokemon': 6,
-    'my_pokemon': 6
+    'my_pokemon': 6,
+    'error' : 'nil' # CAN BE USED TO FIND LAST ERROR 
 }
 
+# TODO:
+# MAKE INITIAL STATE
+# LET AI MAKE THE FIRST MOVE OUTSIDE THE MAIN WHILE
+
+
+# MAIN LOOP THAT PLAYS THE GAME, TECHNICALLY STARTS FROM TURN 2 OF THE GAME
 while game['active']:
 
     if game['my_pokemon'] == 0 or game['enemy_pokemon'] == 0:
@@ -85,69 +96,111 @@ while game['active']:
     print('Got enemy opp_pokemon_new')
 
     if opp_pokemon_new == None or opp_pokemon_new['name'] != opp_pokemon['name']:
-        enemy_pokemon,enemyFaintCount = pd.getEnemyPokemonList(browser,actions)
+        enemy_pokemon,enemyFaintCount = pd.getEnemyPokemonList(browser)
+        print('\nEnemy Faint Count:' + str(enemyFaintCount))
         game['enemy_pokemon'] = 6 - enemyFaintCount
-        if game['enemy_pokemon'] == 0:
+        print('\nENEMY POKEMON COUNT:' + str(game['enemy_pokemon']) )
+        if game['enemy_pokemon'] == 0: # AI WON
             game['active'] = False
             break
         opp_pokemon = opp_pokemon_new
         game['enemy_active_pokemon_name'] = opp_pokemon['name']
 
+
+    active_moves = pd.getCurrentActiveMoves(browser) # INITIALISE OUTSIDE AS THIS WILL BE USED LATER TO MAKE A STATE
+    isSwitchPossible = pd.isSwitchPossible(browser) # IS SWITCHING TO A DIFFERENT POKEMON POSSIBLE OR NOT
+    print('\n IS SWITCH POSSIBLE:' + str(isSwitchPossible))
+    # THIS IS JUST FOR TESTING TO CHOOSE A MOVE MANUALLY
+
+    if isSwitchPossible == False and active_moves == None: # GAME OVER
+        if game['my_pokemon'] > 1: # OPPONENT FORFEITED
+            game['enemy_pokemon'] = 0
+            game['forfeit'] = True
+        else: # AI LOST
+            game['my_pokemon'] = 0
+        game['active'] = False
+        break
     
-    # TODO:make moves, get updates
-    # network makes a 
-    print('\nmake move\n')
-    time.sleep(40)
-    print('\nMove over\n')
+    move_switch = WebDriverWait(browser, 100).until(lambda browser : browser.find_elements(By.NAME,"selectMove") or browser.find_elements(By.NAME,"selectSwitch"))#browser.find_element_by_name('selectMove') or browser.find_element_by_name('selectSwitch')
+    if len(move_switch) == 0:
+        # ERROR, 
+        game['error'] = 'ERROR: UNABLE TO FIND MOVE/SWITCH BUTTONS'
+        break
+    move_switch = move_switch[0] #PREVIOUS LINE RETURNS A LIST
     
-    # explicitly wait for 
-    move_switch = WebDriverWait(browser, 100).until(EC.presence_of_element_located((By.NAME, "selectMove")) or EC.presence_of_element_located((By.NAME,"selectSwitch")))#browser.find_element_by_name('selectMove') or browser.find_element_by_name('selectSwitch')
-    if move_switch.text == 'Attack': #choose next attack
+    active_pokemon_new = None
+    
+    if move_switch.text == 'Attack': #CAN ATTACK OR SWITCH IF SWITCHING IS POSSIBLE
+        active_moves = pd.getCurrentActiveMoves(browser) # MOVES WHICH CAN USED 
+        print('\nACTIVE MOVES: ' + str(active_moves))
         print('\nIn attack\n')
-        #TODO: get updates, calculate reward
-        active_pokemon_new = pd.getActivePokemon(browser)
-        # calculate reward
-        my_pokemon[game['active_pokemon']] = active_pokemon_new
+        if isSwitchPossible == True: # GET FROM SWITCH BAR
+            active_pokemon_new = pd.getActivePokemon(browser) #new state of active pokemon
+        else: # GET MODIFIED STATS AND HEALTH ALONE
+            active_pokemon_new = active_pokemon
+            active_pokemon_new['hp'],active_pokemon_new['Atk'],active_pokemon_new['Def'],active_pokemon_new['SpA'],active_pokemon_new['SpD'],active_pokemon_new['Spe'] = pd.getActiveModifiedStatsAndHpFromSprite(browser)
+        game['active_pokemon'] = active_pokemon_new
         print('Active Pokemon:' + str(active_pokemon))
-        # TODO: network decides to either switch or attack
-        # click based on network, if switch use pokemon['element']
     
-    elif move_switch.text == 'Switch': #choose pokemon to switch to
+    elif move_switch.text == 'Switch': #MUST SWITCH
         # check if active pokemon is dead
+        #TODO: SET MUST SWITCH PARAMETER
         print('\nIn Switch\n')
         active_pokemon_new = pd.getActivePokemon(browser)
         if active_pokemon_new['isAlive'] == False: #pokemon has fainted
-            # TODO: calculate reward
             # remove active pokemon from list
-            my_pokemon.remove(game['active_pokemon'])
+            my_pokemon = [pokemon for pokemon in my_pokemon if pokemon['name'] != active_pokemon['name']]
             game['my_pokemon']-=1
+            game['active_pokemon'] = None
+            print('\nAlive pokemon:' + str(game['my_pokemon']))
             if game['my_pokemon'] == 0:
-                game['active'] = False
+                game['active'] = False #GAME IS OVER
                 break
         
         # get updates
-        print('POKEMON: ' + active_pokemon_new)
-        # TODO: calculate reward from active_pokemon and active_pokemon_new 
-        # choose pokemon to switch
-        # TODO: neural network chooses switch, switch with pokemon['element']
-        print('\nchoose switch\n')
-        time.sleep(30)
-        print('\nSwitch chosen\n')
+        print('POKEMON: ' + str(active_pokemon_new))
 
+        #THIS EXISTS TO ONLY MANUALLY SWITCH WHILE TESTING
+        print('\nCHOOSE SWITCH\n')
+
+    print('\nMAKE MOVE\n')
+    time.sleep(20)
+    print('\nMOVE OVER\n')
+    # TODO: CREATE STATE HERE?
+    # GET REWARD FOR TRANSITION
+    # ADD TO EXPERIENCE REPLAY?
+    
+    # TODO: THIS IS WHERE THE AI ACTUALLY MAKES A DECISION
+    # CREATE STATE USING ALL INFO GATHERED AND LET AI DECIDE
+    # CLICK USING ['element'] might work cause dom might not have refreshed
+
+    # ### IF POKEMON WAS SWITCHED #######
+    # active_pokemon = pd.getActivePokemon(browser)
+    # game['active_pokemon'] = active_pokemon
+    # print('\nSwitched Pokemon:' + str(active_pokemon))
+
+# END OF WHILE
+
+
+# GAME IS NOT ACTIVE ANYMORE, OUTSIDE WHILE
 if game['active'] == False:
     if game['my_pokemon'] == 0 and game['enemy_pokemon'] > 0:
         print('You lost')
-        # TODO: decrease rewards
+        # TODO: decrease rewards, CREATE FINAL STATE
     
     elif game['my_pokemon'] > 0 and game['enemy_pokemon'] == 0:
         print('You win')
-        # TODO: increse reward
+        # TODO: increse reward, CREATE FINAL STATE
     else:
         print('Draw')
-        # TODO: manipulate reward, increase by a little
+        # TODO: manipulate reward, CREATE FINAL STATE
+    
+    # TODO: CREATE FINAL STATE
+
 
 else:
     print('Broke because of some error') 
+    print(game['error'])
     # TODO: handle later
 
 # div class controls text Waiting for opponent...
