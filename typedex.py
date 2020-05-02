@@ -1,5 +1,5 @@
 typedex = {
-    'nil' : [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    # 'nil' : [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
     'normal' : [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     'fighting' : [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
     'flying' : [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],
@@ -17,13 +17,18 @@ typedex = {
     'dragon' : [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
     'dark' : [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
     'steel' : [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    'fairy' : [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1]
+    'fairy' : [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 }
 
 def getTypeOhe(m_type):
     print('TYPEDEX REQUEST: ' + m_type)
     m_type = m_type.lower()
     if m_type in typedex.keys():
-        return typedex[m_type]
-    return None
+        print(str(typedex.keys()))
+        r = typedex.get(m_type)
+        print('\nRETURNING TYPE OHE:', r)
+
+        return r
+    else:
+        return [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
