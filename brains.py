@@ -5,10 +5,12 @@ import gen_state
 import numpy as np
 
 class Brain(nn.Module):
-    def __init__(self,epsilon = 0.5):
+    def __init__(self,device,epsilon = 0.5):
+        super().__init__()
         self.epsilon = epsilon
+        self.device = device
 
-        self.movechooser = nn.Sequentail(
+        self.movechooser = nn.Sequential(
             nn.Linear(194, 256),
             nn.ReLU(),
             nn.Linear(256,512),
@@ -28,8 +30,8 @@ class Brain(nn.Module):
             nn.Linear(128,4)
         )
 
-        self.switchchooser = nn.Sequentail(
-            nn.Linear(927, 1024),
+        self.switchchooser = nn.Sequential(
+            nn.Linear(1074, 1024),
             nn.ReLU(),
             nn.Linear(1024,1024),
             nn.ReLU(),
@@ -65,16 +67,19 @@ class Brain(nn.Module):
         )
     
     def forwardMove(self, move_state):
-        move_result = self.movechooser(move_result)
+        move_state = torch.tensor(move_state,device=self.device, dtype=torch.float)
+        move_result = self.movechooser(move_state)
 
         return move_result.data.cpu().numpy()
 
     def forwardSwitch(self, switch_state):
+        switch_state = torch.tensor(switch_state,device=self.device, dtype=torch.float)
         switch_result = self.switchchooser(switch_state)
 
         return switch_result.data.cpu().numpy()
 
     def forwardFinal(self, final_state):
+        final_state = torch.tensor(final_state,device=self.device, dtype=torch.float)
         final_result = self.finalchooser(final_state)
 
         return final_result.data.cpu().numpy()
@@ -84,10 +89,12 @@ class Brain(nn.Module):
         switch_state = gen_state.generateStateforSwitchChooser(superstate) if must_attack == False else gen_state.generateStateforSwitchChooser(None)
         
         move_result = self.forwardMove(move_state) if must_switch == False else [0,0,0,0]
-        switch_result = self.forwardSwitch(switch_state) if must_attack == False else [0,0,0,0,0]
+        print('\nMOVE_CHOOSER_RESULT:' + str(move_result))
+        switch_result = self.forwardSwitch(switch_state) if must_attack == False else [0,0,0,0,0,0]
+        print('\nSWITCH_CHOOSER_RESULT:' + str(switch_result))
         final_state = gen_state.generateStateforFinalChooser(move_result,switch_result,superstate)
 
-        return self.forwardFinal(final_state).data.cpu().numpy,move_result,switch_result
+        return self.forwardFinal(final_state),move_result,switch_result
 
     def sample_action(self, qvalues,active_moves, pokemon_count):
         epsilon = self.epsilon
@@ -98,9 +105,9 @@ class Brain(nn.Module):
 
         should_explore = np.random.choice([0, 1], p=[1-epsilon, epsilon])
         if should_explore == 0:
-            return best_action, 0
+            return best_action, False
         else:
-            return random_action, 1
+            return random_action, True
 
 def compute_loss(superstates,actions, rewards, is_done, next_superstates, agent, target_network, device, gamma = 0.99):
     # TODO: Write functionality
