@@ -106,13 +106,14 @@ def getActivePokemon(browser):
                     element = x
                     x = x.text.split('\n')
                     m = {}
+                    m['element'] = element
                     move = x[0]
                     # move_type = x[1]
                     pp_div = element.find_element_by_class_name('pp')
                     move_pp = int(pp_div.text.split('/')[0])
                     m['move'] = move
                     # call movedex for deets
-                    m['accuracy'],m['power'],m['pp'],m['type'],m['Atk'],m['Def'],m['SpA'],m['Spd'],m['Spe'] = movedex.getMoveDeets(move)
+                    m['accuracy'],m['power'],m['pp'],m['type'],m['Atk'],m['Def'],m['SpA'],m['SpD'],m['Spe'] = movedex.getMoveDeets(move)
                     # TODO: use type ohe
                     m['type'] = typedex.getTypeOhe(m['type'])
                     m['pp'] = move_pp
@@ -209,7 +210,7 @@ def getInactivePokemon(browser):
                     else:
                         moves[i] = moves[i][1:]
                     m['move'] = moves[i]
-                    m['accuracy'],m['power'],m['pp'],m['type'],m['Atk'],m['Def'],m['SpA'],m['Spd'],m['Spe'] = movedex.getMoveDeets(moves[i])
+                    m['accuracy'],m['power'],m['pp'],m['type'],m['Atk'],m['Def'],m['SpA'],m['SpD'],m['Spe'] = movedex.getMoveDeets(moves[i])
 
                     m['type'] = typedex.getTypeOhe(m['type'])
                     mov.append(m)
