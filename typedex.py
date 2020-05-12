@@ -21,12 +21,12 @@ typedex = {
 }
 
 def getTypeOhe(m_type):
-    print('TYPEDEX REQUEST: ' + m_type)
+    # print('TYPEDEX REQUEST: ' + m_type)
     m_type = m_type.lower()
     if m_type in typedex.keys():
-        print(str(typedex.keys()))
+        # print(str(typedex.keys()))
         r = typedex.get(m_type)
-        print('\nRETURNING TYPE OHE:', r)
+        # print('\nRETURNING TYPE OHE:', r)
 
         return r
     else:

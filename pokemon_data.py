@@ -11,30 +11,18 @@ import typedex
 
 def getActivePokemon(browser):
 
+    start = time.time()
+
     actions = ActionChains(browser)
     active_pokemon = None
-    # # switch_possible = isSwitchPossible(browser)
-    # # if switch_possible == False:
-    # divs = WebDriverWait(browser, 30).until(EC.presence_of_element_located((By.CLASS_NAME, "tooltips")))
-    # divs = divs.find_elements_by_class_name('has-tooltip')
-    # for x in divs:
-    #     if x.get_attribute('data-tooltip') == 'activepokemon|0|0':
-    #         active_pokemon = x
-    #         break
-    # # else:
     active_pokemon = WebDriverWait(browser, 60).until(EC.presence_of_element_located((By.NAME, "chooseDisabled")))#browser.find_element_by_name('chooseDisabled')
 
-    print('\nActive Pokemon text:' + active_pokemon.text)
+    # print('\nActive Pokemon text:' + active_pokemon.text)
 
     if 'active' in active_pokemon.get_attribute('value').split(','):
         pokemon = {}
 
-        # time.sleep(3)
-        # try:
         actions.move_to_element(active_pokemon).perform()
-        # except:
-        #     active_pokemon = WebDriverWait(browser, 60).until(EC.presence_of_element_located((By.NAME, "chooseDisabled")))#browser.find_element_by_name('chooseDisabled')
-        #     actions.move_to_element(active_pokemon).perform()
 
         pokemon['element'] = active_pokemon
 
@@ -46,22 +34,28 @@ def getActivePokemon(browser):
         name_level = name_level.text.split(' ')
 
         name = ''
-        for i in range(len(name_level) - 1):
-            name+= name_level[i] + ' '
-        name = name[:len(name)-1] #Name of pokemon
-        pokemon['name'] = name
-        print('Name:' + name)
+        print('\nNAME_LEVEL', str(name_level))
+        # for i in range(len(name_level) - 1):
+        #     name+= name_level[i] + ' '
+        # name = name[:len(name)-1] #Name of pokemon
+        pokemon['name'] = name_level[0]
+        print('\nNAME', pokemon['name'])
+        # print('Name:' + name)
 
-        level = int(name_level[-1][1:]) #level
+        # level = int(name_level[-1][1:]) #level
+        for j in range(1, len(name_level)):
+            if name_level[j][0] == 'L' and (len(name_level[j]) == 3 or len(name_level[j]) == 4 ):
+                level = int(name_level[1][1:])
+        # print('\nLEVEL', level)
         pokemon['level'] = level
-        print('Level:' + str(level))
+        # print('Level:' + str(level))
         p_type = []
         for t in type_list:
             if t.get_attribute('alt') != 'M' and t.get_attribute('alt') != 'F':
                 p_type.append(typedex.getTypeOhe(t.get_attribute('alt')))
 
         pokemon['type'] = p_type
-        print('Type:' + str(p_type))
+        # print('Type:' + str(p_type))
 
 
         stats = stats.find_elements_by_xpath('.//p')
@@ -70,7 +64,7 @@ def getActivePokemon(browser):
             if i==0: #hp
                 hp = float(stats[i].text.split('%')[0][4:])
                 pokemon['hp'] = hp
-                print('Hp:' + str(hp))
+                # print('Hp:' + str(hp))
             elif i==1: #ability and item
                 ability_item = stats[i].text.split('/')
                 ability = ability_item[0].split(':')[1] #ability with spaces
@@ -81,7 +75,7 @@ def getActivePokemon(browser):
 
                 pokemon['ability'] = ability
                 pokemon['item'] = item
-                print('Ability:' + ability + ' Item:' + item)
+                # print('Ability:' + ability + ' Item:' + item)
             elif i==2: #stats
                 s = stats[i].text.split('/')
                 atk = int(s[0][4:-1])
@@ -97,12 +91,18 @@ def getActivePokemon(browser):
                 pokemon['SpD'] = spd
                 pokemon['Spe'] = spe
 
-                print('Stats: ' + str(stats_list))
+                # print('Stats: ' + str(stats_list))
                 
             elif i==3: #moves
+
+                move_start = time.time()
+
                 active_moves = browser.find_elements_by_name('chooseMove')
                 moves = []
                 for x in active_moves:
+
+                    single_move_start = time.time()
+
                     element = x
                     x = x.text.split('\n')
                     m = {}
@@ -113,19 +113,26 @@ def getActivePokemon(browser):
                     move_pp = int(pp_div.text.split('/')[0])
                     m['move'] = move
                     # call movedex for deets
+                    dex_start = time.time()
                     m['accuracy'],m['power'],m['pp'],m['type'],m['Atk'],m['Def'],m['SpA'],m['SpD'],m['Spe'] = movedex.getMoveDeets(move)
+                    print('\nMOVE DEX TIME: ', time.time() -  dex_start)
                     # TODO: use type ohe
                     m['type'] = typedex.getTypeOhe(m['type'])
                     m['pp'] = move_pp
                     moves.append(m)
+
+                    print('\nTIME PER MOVE: ', time.time() - single_move_start)
                 
                 pokemon['moves'] = moves
-                print('Moves:' + str(moves))
+                print('\nALL MOVES TIME: ', time.time() - move_start)
+                # print('Moves:' + str(moves))
         pokemon['isActive'] = True
         pokemon['isAlive'] = True
     
     else:
         return {'isAlive':False}
+
+    print('\nACTIVE POKEMON TIME: ', time.time() - start )
     
     return pokemon
 
@@ -144,23 +151,26 @@ def getInactivePokemon(browser):
         type_list = name_level.find_elements_by_xpath('.//img')
         name_level = name_level.text.split(' ')
 
-        name = ''
-        for i in range(len(name_level) - 1):
-            name+= name_level[i] + ' '
-        name = name[:len(name)-1] #Name of pokemon
-        pokemon['name'] = name
-        print('Name:' + name)
+        # name = ''
+        # for i in range(len(name_level) - 1):
+        #     name+= name_level[i] + ' '
+        # name = name[:len(name)-1] #Name of pokemon
+        pokemon['name'] = name_level[0]
+        # print('Name:' + name)
 
-        level = int(name_level[-1][1:]) #level
+        # level = int(name_level[1][1:]) #level
+        for j in range(1, len(name_level)):
+            if name_level[j][0] == 'L' and (len(name_level[j]) == 3 or len(name_level[j]) == 4 ):
+                level = int(name_level[1][1:])
         pokemon['level'] = level
-        print('Level:' + str(level))
+        # print('Level:' + str(level))
         p_type = []
         for t in type_list:
             if t.get_attribute('alt') != 'M' and t.get_attribute('alt') != 'F':
                 p_type.append(typedex.getTypeOhe(t.get_attribute('alt')))
 
         pokemon['type'] = p_type
-        print('Type:' + str(p_type))
+        # print('Type:' + str(p_type))
 
 
         stats = stats.find_elements_by_xpath('.//p')
@@ -169,7 +179,7 @@ def getInactivePokemon(browser):
             if i==0: #hp
                 hp = float(stats[i].text.split('%')[0][4:])
                 pokemon['hp'] = hp
-                print('Hp:' + str(hp))
+                # print('Hp:' + str(hp))
             elif i==1: #ability and item
                 ability_item = stats[i].text.split('/')
                 ability = ability_item[0].split(':')[1] #ability with spaces
@@ -180,7 +190,7 @@ def getInactivePokemon(browser):
 
                 pokemon['ability'] = ability
                 pokemon['item'] = item
-                print('Ability:' + ability + ' Item:' + item)
+                # print('Ability:' + ability + ' Item:' + item)
             elif i==2: #stats
                 s = stats[i].text.split('/')
                 atk = int(s[0][4:-1])
@@ -196,7 +206,7 @@ def getInactivePokemon(browser):
                 pokemon['SpD'] = spd
                 pokemon['Spe'] = spe
 
-                print('Stats: ' + str(stats_list))
+                # print('Stats: ' + str(stats_list))
                 
             elif i==3: #moves
                 
@@ -217,7 +227,7 @@ def getInactivePokemon(browser):
 
                 pokemon['moves'] = mov
 
-                print('Moves:' + str(moves))
+                # print('Moves:' + str(moves))
             elif i==4: #modified stats
                 print('Stats Modified:' + stats[i].text)
         pokemon['isActive'] = False
@@ -284,28 +294,35 @@ def getActiveEnemyPokemon(browser):
         print('Enemy active pokemon not found')
         return None
 
-    stats = browser.find_element_by_class_name('tooltip')
+    stats = browser.find_elements_by_class_name('tooltip')
+    if len(stats) == 0:
+        print('\nENEMY POKEMON NOT FOUND\n')
+        return None
+    stats = stats[0]
     name_level = stats.find_element_by_xpath('.//h2')
     type_list = name_level.find_elements_by_xpath('.//img')
     name_level = name_level.text.split(' ')
 
-    name = ''
-    for i in range(len(name_level) - 1):
-        name+= name_level[i] + ' '
-    name = name[:len(name)-1] #Name of pokemon
-    pokemon['name'] = name
-    print('Name:' + name)
+    # name = ''
+    # for i in range(len(name_level) - 1):
+    #     name+= name_level[i] + ' '
+    # name = name[:len(name)-1] #Name of pokemon
+    pokemon['name'] = name_level[0]
+    # print('Name:' + name)
 
-    level = int(name_level[-1][1:]) #level
+    for j in range(1, len(name_level)):
+        if name_level[j][0] == 'L' and (len(name_level[j]) == 3 or len(name_level[j]) == 4 ):
+            level = int(name_level[1][1:])
+    # level = int(name_level[1][1:]) #level
     pokemon['level'] = level
-    print('Level:' + str(level))
+    # print('Level:' + str(level))
     p_type = []
     for t in type_list:
         if t.get_attribute('alt') != 'M' and t.get_attribute('alt') != 'F':
             p_type.append(typedex.getTypeOhe(t.get_attribute('alt')))
 
     pokemon['type'] = p_type
-    print('Type:' + str(p_type))
+    # print('Type:' + str(p_type))
 
     stats = stats.find_elements_by_xpath('.//p')
 
@@ -313,9 +330,9 @@ def getActiveEnemyPokemon(browser):
         if i==0: #hp
             hp = float(stats[i].text.split('%')[0][4:])
             pokemon['hp'] = hp
-            print('Hp:' + str(hp))
+            # print('Hp:' + str(hp))
         elif i==2: #stats spe 162 to 205 or item
-                if stats[i].text[0:4] == 'Item':
+                if stats[i].text[0:3] != 'Spe':
                     pass
                 else:
                     s = stats[i].text.split('to')
@@ -326,10 +343,10 @@ def getActiveEnemyPokemon(browser):
                     pokemon['from_spe'] = from_spe
                     pokemon['to_spe'] = to_spe
 
-                    print('Stats: spe ' + str(pokemon['from_spe']) + ' to ' + str(pokemon['to_spe']))
+                    # print('Stats: spe ' + str(pokemon['from_spe']) + ' to ' + str(pokemon['to_spe']))
 
         elif i==3: #stats spe 162 to 205
-            if stats[i].text[0:3] != 'spe':
+            if stats[i].text[0:3] != 'Spe':
                 pass
             else:
                 s = stats[i].text.split('to')
@@ -340,7 +357,7 @@ def getActiveEnemyPokemon(browser):
                 pokemon['from_spe'] = from_spe
                 pokemon['to_spe'] = to_spe
 
-                print('Stats: spe ' + str(pokemon['from_spe']) + ' to ' + str(pokemon['to_spe']))
+                # print('Stats: Spe ' + str(pokemon['from_spe']) + ' to ' + str(pokemon['to_spe']))
         # TODO: maybe get moves of enemy pokemon
 
     return pokemon
@@ -367,23 +384,26 @@ def getEnemyPokemonList(browser):
 
         pokemon['element'] = p
 
-        name = ''
-        for i in range(len(name_level) - 1):
-            name+= name_level[i] + ' '
-        name = name[:len(name)-1] #Name of pokemon
-        pokemon['name'] = name
-        print('Name:' + name)
+        # name = ''
+        # for i in range(len(name_level) - 1):
+        #     name+= name_level[i] + ' '
+        # name = name[:len(name)-1] #Name of pokemon
+        pokemon['name'] = name_level[0]
+        # print('Name:' + name)
 
-        level = int(name_level[-1][1:]) #level
+        for j in range(1, len(name_level)):
+            if name_level[j][0] == 'L' and (len(name_level[j]) == 3 or len(name_level[j]) == 4 ):
+                level = int(name_level[1][1:])
+        # level = int(name_level[1][1:]) #level
         pokemon['level'] = level
-        print('Level:' + str(level))
+        # print('Level:' + str(level))
         p_type = []
         for t in type_list:
             if t.get_attribute('alt') != 'M' and t.get_attribute('alt') != 'F':
                 p_type.append(typedex.getTypeOhe(t.get_attribute('alt')))
 
         pokemon['type'] = p_type
-        print('Type:' + str(p_type))
+        # print('Type:' + str(p_type))
 
         stats = stats.find_elements_by_xpath('.//p')
 
@@ -396,7 +416,7 @@ def getEnemyPokemonList(browser):
                     break
                 hp = float(stats[i].text.split('%')[0][4:])
                 pokemon['hp'] = hp
-                print('Hp:' + str(hp))
+                # print('Hp:' + str(hp))
             elif i==2: #stats spe 162 to 205 or item
                 if stats[i].text[0:4] == 'Item':
                     pass
@@ -409,7 +429,7 @@ def getEnemyPokemonList(browser):
                     pokemon['from_spe'] = from_spe
                     pokemon['to_spe'] = to_spe
 
-                    print('Stats: spe ' + str(pokemon['from_spe']) + ' to ' + str(pokemon['to_spe']))
+                    # print('Stats: spe ' + str(pokemon['from_spe']) + ' to ' + str(pokemon['to_spe']))
 
             elif i==3: #stats spe 162 to 205
                 if stats[i].text[0:3] != 'spe':
@@ -423,7 +443,7 @@ def getEnemyPokemonList(browser):
                     pokemon['from_spe'] = from_spe
                     pokemon['to_spe'] = to_spe
 
-                    print('Stats: spe ' + str(pokemon['from_spe']) + ' to ' + str(pokemon['to_spe']))
+                    # print('Stats: spe ' + str(pokemon['from_spe']) + ' to ' + str(pokemon['to_spe']))
 
             # TODO: maybe get enemey pokemon moves
 
@@ -440,7 +460,7 @@ def getFaintedPokemonNumber(browser):
     faintCount = 0
     fainted_pokemon = WebDriverWait(browser, 60).until(EC.presence_of_all_elements_located((By.NAME, "chooseDisabled")))#browser.find_element_by_name('chooseDisabled')
     actions = ActionChains(browser)
-    print('\nNon Choosable pokemon:' + str(fainted_pokemon.text))
+    # print('\nNon Choosable pokemon:' + str(fainted_pokemon.text))
 
     for p in fainted_pokemon:
         if 'fainted' in p.get_attribute('value').split(','):
@@ -455,19 +475,7 @@ def getCurrentActiveMoves(browser):
         moves = []
         for x in active_moves:
             x = x.text.split('\n')
-            # m = {}
             move = x[0]
-            # move_type = x[1]
-            # try:
-            #     move_pp = int(x[2].split('/')[0])
-            # except:
-            #     move_pp = 100
-            # m['move'] = move
-            # # call movedex for deets
-            # m['accuracy'],m['power'],m['pp'],m['type'],m['Atk'],m['Def'],m['SpA'],m['Spd'],m['Spe'] = movedex.getMoveDeets(move)
-            # # TODO: use type ohe
-            # m['type'] = typedex.getTypeOhe(m['type'])
-            # m['pp'] = move_pp
             moves.append(move)
         
         return moves
@@ -518,6 +526,74 @@ def getActiveModifiedStatsAndHpFromSprite(browser):
             break
     
     return hp,atk,deff,spa,spd,spe
+
+def getActivePokemonElement(browser):
+    actions = ActionChains(browser)
+    active_pokemon = None
+    pokemon = {}
+    active_pokemon = WebDriverWait(browser, 60).until(EC.presence_of_element_located((By.NAME, "chooseDisabled")))#browser.find_element_by_name('chooseDisabled')
+
+    if 'active' in active_pokemon.get_attribute('value').split(','):
+        actions.move_to_element(active_pokemon).perform()
+
+        stats = browser.find_element_by_class_name('tooltip')
+        name_level = stats.find_element_by_xpath('.//h2')
+        name_level = name_level.text.split(' ')
+
+        # name = ''
+        # for i in range(len(name_level) - 1):
+        #     name+= name_level[i] + ' '
+        # name = name[:len(name)-1] #Name of pokemon
+        pokemon[syt(name_level[0])] = active_pokemon
+    return pokemon
+
+
+def getSwitchablePokemonNames(browser):
+    switchable_list = getActivePokemonElement(browser)
+    actions = ActionChains(browser)
+    switch_pokemon_list = WebDriverWait(browser, 60).until(EC.presence_of_all_elements_located((By.NAME, "chooseSwitch")))#browser.find_elements_by_name('chooseSwitch')
+    for i in range(len(switch_pokemon_list)):
+        actions.move_to_element(switch_pokemon_list[i]).perform()
+
+        stats = browser.find_element_by_class_name('tooltip')
+        name_level = stats.find_element_by_xpath('.//h2')
+        name_level = name_level.text.split(' ')
+
+        element = switch_pokemon_list[i]
+
+        # name = ''
+        # for j in range(len(name_level) - 1):
+        #     name+= name_level[j] + ' '
+        # name = name[:len(name)-1] #Name of pokemon
+        switchable_list[str(name_level[0])] = element  
+
+    return switchable_list
+
+def getMoveElement(browser, move):
+    active_moves = getCurrentActiveMoves(browser)
+    moves = browser.find_elements_by_name('chooseMove')
+    if move['pp'] == 0 or move['move'] not in active_moves:
+        print('\nPOKEMONDATA: MOVE NOT IN LIST:' + str(move['move']))
+        return None
+    for x in moves:
+        element = x
+        x = x.text.split('\n')
+        if move['move'] == x[0]:
+            return element
+
+    return None
+
+def getSwitchElement(browser, pokemon):
+    switch_pokemon = getSwitchablePokemonNames(browser)
+    # print('\nSWITCHABLE POKEMON:' + str(switch_pokemon))
+    # print('\nCHOSEN SWITCH: ' + str(pokemon))
+    if pokemon['name'] in switch_pokemon.keys():
+        print('\nRETURNING SWITCH ELEMENT\n')
+        return switch_pokemon[pokemon['name']]
+    return None
+
+
+
 
     
 

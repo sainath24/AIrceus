@@ -23,7 +23,7 @@ def getMoveDeets(move):
     move = move.lower().replace(' ','-')
     if 'hidden-power' in move:
         move = 'hidden-power'
-    print('\nMOVEDEX REQUEST:' + move)
+    # print('\nMOVEDEX REQUEST:' + move)
     move = pb.move(move)
 
     accuracy = move.accuracy
