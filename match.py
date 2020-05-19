@@ -23,6 +23,7 @@ superstates = []
 next_superstates = []
 pokemon_actions = []
 rewards = []
+losses= []
 is_done = []
 active_moves = []
 
@@ -116,6 +117,7 @@ def makeMove(state): # RETURNS ACTION
                 print('\nCHOSEN MOVE: ' + str(move))
                 element = pd.getMoveElement(browser,move)
                 if element != None:
+                    game['switch_count'] = 0
                     element.click()
                 else:
                     print('\nCHOSEN MOVE DOES NOT EXIST\n')
@@ -152,6 +154,7 @@ def makeMove(state): # RETURNS ACTION
                     print('\nCHOSEN MOVE:' + str(move))
                     element = pd.getMoveElement(browser,move)
                     if element != None:
+                        game['switch_count'] = 0;
                         element.click()
                     else:
                         print('\nCHOSEN MOVE DOES NOT EXIST\n')
@@ -163,6 +166,7 @@ def makeMove(state): # RETURNS ACTION
                 else:
                     element = pd.getSwitchElement(browser,switch_pokemon)
                     if element != None:
+                        game['switch_count'] +=1
                         element.click()
                         active_pokemon = switch_pokemon
                         game['active_pokemon'] = active_pokemon
@@ -338,14 +342,15 @@ def play(): # RETURN STATE, REWARD, IS_DONE
         return playReturn(True)
 
 
-game_count = 12
+game_count = 6
 win_count = 0
-loss_count = 12
+loss_count = 6
 
-agent.load_state_dict(torch.load('pokAImon' + str(game_count) + '.pt'))
+if game_count != 0:
+    agent.load_state_dict(torch.load('pokAImon' + str(game_count) + '.pt'))
 
 
-while game_count < 13:
+while game_count < 10:
 
     my_pokemon = []
     enemy_pokemon = []
@@ -355,6 +360,7 @@ while game_count < 13:
     next_superstates = []
     pokemon_actions = []
     rewards = []
+    losses = []
     is_done = []
     active_moves = []
 
@@ -374,11 +380,11 @@ while game_count < 13:
 
 
     # ACCEPT CHALLENGE WHILE TESTING
-    # accept_challenge_button = WebDriverWait(browser, 60).until(EC.presence_of_element_located((By.NAME, "acceptChallenge")))#browser.find_element_by_name('acceptChallenge')
-    # accept_challenge_button.click()
+    accept_challenge_button = WebDriverWait(browser, 60).until(EC.presence_of_element_located((By.NAME, "acceptChallenge")))#browser.find_element_by_name('acceptChallenge')
+    accept_challenge_button.click()
 
 
-    randomBattle(browser)
+    # randomBattle(browser)
     # time.sleep(3) # LET WEBPAGE LOAD IRRESPECTIVE OF EXPLICIT WAITS
 
     # GET AI POKEMON LIST AS WELL AS CURRENT ACTIVE POKEMON
@@ -402,6 +408,7 @@ while game_count < 13:
         'enemy_active_pokemon': opp_pokemon,
         'enemy_pokemon': 6,
         'my_pokemon': 6,
+        'switch_count' : 0,
         'error' : 'nil', # CAN BE USED TO FIND LAST ERROR 
         'invalid_decision' : False
     }
@@ -437,7 +444,7 @@ while game_count < 13:
         next_superstates.append(next_state)
         rewards.append(reward)
         if game['invalid_decision'] == True:
-            rewards[-1] = rewards[-1] - 500
+            rewards[-1] = rewards[-1] - 1500
             print('\nINVALID DECISION REWARD: ',rewards[-1])
             game['invalid_decision'] = False
         is_done.append(done)
@@ -447,6 +454,7 @@ while game_count < 13:
         if len(superstates)%3 == 0 or done == True: # CALCULATE LOSS AND CHANGE NETWORK EVERY THREE TURNS
             print('\nCOMPUTING LOSS\n')
             loss = brains.compute_loss(superstates[-3:],pokemon_actions[-3:],rewards[-3:],is_done[-3:],next_superstates[-3:],agent,target_network,device)
+            losses.append(loss)
             print('LOSSSS:', loss)
             loss.backward()
             opt.step()
@@ -487,5 +495,23 @@ while game_count < 13:
 
     torch.save(agent.state_dict(), agent_file)
     browser.quit()
+
+    #SAVE LOSS AND REWARDS WITH PICKLE
+    import pickle
+    fname = 'loss_reward.dat'
+    data = []
+    try:
+        with open(fname,'rb') as file:
+            data = pickle.load(file)
+    except:
+        print('\nloss rewards data file does not exist\n')
+    if len(data) == 0:
+        data = [[losses],[rewards]]
+    else:
+        data[0].append(losses)
+        data[1].append(rewards)
+    
+    with open(fname,'wb') as file:
+        pickle.dump(data,file)
 
 #PLAYED N NUMBER OF GAMES
