@@ -43,9 +43,10 @@ def getActivePokemon(browser):
         # print('Name:' + name)
 
         # level = int(name_level[-1][1:]) #level
+        level = 0
         for j in range(1, len(name_level)):
             if name_level[j][0] == 'L' and (len(name_level[j]) == 3 or len(name_level[j]) == 4 ):
-                level = int(name_level[1][1:])
+                level = int(name_level[j][1:])
         # print('\nLEVEL', level)
         pokemon['level'] = level
         # print('Level:' + str(level))
@@ -159,9 +160,14 @@ def getInactivePokemon(browser):
         # print('Name:' + name)
 
         # level = int(name_level[1][1:]) #level
+        level = 0
         for j in range(1, len(name_level)):
-            if name_level[j][0] == 'L' and (len(name_level[j]) == 3 or len(name_level[j]) == 4 ):
-                level = int(name_level[1][1:])
+            # if name_level[j][0] == 'L' and (len(name_level[j]) == 3 or len(name_level[j]) == 4 ):
+            #     level = int(name_level[1][1:])
+            try:
+                level = int(name_level[j][1:])
+            except:
+                print('\nnot level\n')
         pokemon['level'] = level
         # print('Level:' + str(level))
         p_type = []
@@ -309,10 +315,10 @@ def getActiveEnemyPokemon(browser):
     # name = name[:len(name)-1] #Name of pokemon
     pokemon['name'] = name_level[0]
     # print('Name:' + name)
-
+    level = 0
     for j in range(1, len(name_level)):
         if name_level[j][0] == 'L' and (len(name_level[j]) == 3 or len(name_level[j]) == 4 ):
-            level = int(name_level[1][1:])
+            level = int(name_level[j][1:])
     # level = int(name_level[1][1:]) #level
     pokemon['level'] = level
     # print('Level:' + str(level))
@@ -391,9 +397,10 @@ def getEnemyPokemonList(browser):
         pokemon['name'] = name_level[0]
         # print('Name:' + name)
 
+        level = 0
         for j in range(1, len(name_level)):
             if name_level[j][0] == 'L' and (len(name_level[j]) == 3 or len(name_level[j]) == 4 ):
-                level = int(name_level[1][1:])
+                level = int(name_level[j][1:])
         # level = int(name_level[1][1:]) #level
         pokemon['level'] = level
         # print('Level:' + str(level))
@@ -544,7 +551,7 @@ def getActivePokemonElement(browser):
         # for i in range(len(name_level) - 1):
         #     name+= name_level[i] + ' '
         # name = name[:len(name)-1] #Name of pokemon
-        pokemon[syt(name_level[0])] = active_pokemon
+        pokemon[str(name_level[0])] = active_pokemon
     return pokemon
 
 
