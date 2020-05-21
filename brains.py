@@ -49,9 +49,9 @@ class Brain(nn.Module):
         )
 
         self.finalchooser = nn.Sequential(
-            nn.Linear(175, 256),
+            nn.Linear(263, 512),
             nn.ReLU(),
-            nn.Linear(256,512),
+            nn.Linear(512,512),
             nn.ReLU(),
             nn.Linear(512,1024),
             nn.ReLU(),
@@ -145,7 +145,9 @@ def compute_loss(superstates,actions, rewards, is_done, next_superstates, agent,
         # print('\nREWARD:', reward)
         # print('\nFINAL NEXT Q: ', next_q)
 
-        diff += (q_value - next_q.detach()) **2
+        # diff += (q_value - next_q.detach()) **2
+        diff += ((q_value - next_q.detach()) **2) * ((next_q.detach() - q_value)/abs((q_value - next_q.detach()))) # Try to maintain negative loss as negative
+
         # print('\nDIFF:', diff)
         # torch.cat(agent_qs,q_value)
         # torch.cat(target_qs,next_q)
