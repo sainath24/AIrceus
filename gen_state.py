@@ -211,14 +211,15 @@ def generateStateForMoveChooser(superState, make = True):
     return state
 
 def generateStateforSwitchChooser(superState, make = True):
-    # REQUIRED: ENEMY POKEMON, MY TEAM
+    # REQUIRED: ACTIVE POKEMON,ENEMY POKEMON, MY TEAM
+    # ACTIVE POKEMON - 147
     # ENEMY POKEMON SIZE - 45
-    # TEAM SIZE - 735
-    # TOTAL - 780
+    # TEAM SIZE - 882
+    # TOTAL - 1074
 
     if make == False:
         null_state = []
-        for _ in range(1072):
+        for _ in range(1074):
             null_state.append(0)
         return null_state
 
@@ -231,8 +232,10 @@ def generateStateforFinalChooser(movechooser, switchchooser,superState):
     # REQUIRED: MOVECHOOSER OUTPUT, SWITCHCHOOSER OUTPUT, MY_POKEMON, ENEMY_POKEMON
     # MOVECHOOSER SIZE - 26
     # SWITCH CHOOSER SIZE - 147
-    # TOTAL - 175
-    # ACTIVE MOVES START FROM 26 WITH LENGTH 26
+    # ACTIVE POKEMON - 43 (EXCLUDING MOVES)
+    # ENEMY POKEMON - 45
+    # TOTAL - 263
+    # ACTIVE MOVES START FROM 43 WITH LENGTH 26
 
     null_move = typedex.getTypeOhe('nil')
     null_move.extend([0,0,0,0,0,0,0,0])
@@ -242,7 +245,7 @@ def generateStateforFinalChooser(movechooser, switchchooser,superState):
     if movechooser.tolist() == [0,0,0,0]:
         move = null_move
     else:
-        move = superState[(chosen_move * 26) + 26: (chosen_move * 26) + 26 + 26]
+        move = superState[(chosen_move * 26) + 43: (chosen_move * 26) + 43 + 26]
     # print('\nMOVE LEN:' + str(len(move)))
 
     chosen_pokemon = switchchooser.argmax()
@@ -254,8 +257,17 @@ def generateStateforFinalChooser(movechooser, switchchooser,superState):
         pokemon = superState[(chosen_pokemon * 147) + 192: (chosen_pokemon * 147) + 192 + 147]
     # print('\nPOKEMON LEN:' + str(len(pokemon)))
 
-    state = move
+    #ADD ACTIVE POKEMON AND ECTIVE ENEMY POKEMON
+    active_pokemon = superState[:43]
+    active_enemy_pokemon = superState[147:192]
+
+    state = active_pokemon
+    state.extend(active_enemy_pokemon)
+
+    state.extend(move)
     state.extend(pokemon)
+    
+
     state.append(superState[1074])
     state.append(superState[1075])
 
