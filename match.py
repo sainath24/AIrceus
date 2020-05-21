@@ -106,7 +106,7 @@ def makeMove(state): # RETURNS ACTION
         else:
             print('\nMOVE CHOSEN INDEX: ' + str(move_chosen))
             moves = active_pokemon['moves']
-            if moves[move_chosen]['move'] not in active_moves:
+            if move_chosen >= len(moves) or moves[move_chosen]['move'] not in active_moves:
                 print('\nCHOSEN MOVE IS NOT ACTIVE\n')
                 # game['active'] = False
                 # game['my_pokemon'] = 0
@@ -150,18 +150,22 @@ def makeMove(state): # RETURNS ACTION
                 if state['must_switch'] == False and switch_pokemon['name'] == active_pokemon['name']:
                     print('\nSWITCHED TO SAME ACTIVE POKEMON\n')
                     moves = active_pokemon['moves']
-                    move = moves[move_chosen]
-                    print('\nCHOSEN MOVE:' + str(move))
-                    element = pd.getMoveElement(browser,move)
-                    if element != None:
-                        game['switch_count'] = 0;
-                        element.click()
-                    else:
-                        print('\nCHOSEN MOVE DOES NOT EXIST\n')
-                        # game['active'] = False
-                        # game['my_pokemon'] = 0
-                        game['error'] = 'CHOSEN DECISION DOES NOT EXIST'
+                    if move_chosen >= len(moves):
+                        print('\nMOVE NOT AVAILABLE\n')
                         game['invalid_decision'] = True
+                    else:
+                        move = moves[move_chosen]
+                        print('\nCHOSEN MOVE:' + str(move))
+                        element = pd.getMoveElement(browser,move)
+                        if element != None:
+                            game['switch_count'] = 0;
+                            element.click()
+                        else:
+                            print('\nCHOSEN MOVE DOES NOT EXIST\n')
+                            # game['active'] = False
+                            # game['my_pokemon'] = 0
+                            game['error'] = 'CHOSEN DECISION DOES NOT EXIST'
+                            game['invalid_decision'] = True
 
                 else:
                     element = pd.getSwitchElement(browser,switch_pokemon)
@@ -342,15 +346,17 @@ def play(): # RETURN STATE, REWARD, IS_DONE
         return playReturn(True)
 
 
-game_count = 6
+# CURRENTLY TESTING WITH SMALL REWARDS
+
+game_count = 2
 win_count = 0
-loss_count = 6
+loss_count = 2
 
 if game_count != 0:
-    agent.load_state_dict(torch.load('pokAImon' + str(game_count) + '.pt'))
+    agent.load_state_dict(torch.load('pokAImon' + str(game_count-1) + '.pt'))
 
 
-while game_count < 10:
+while game_count < 3:
 
     my_pokemon = []
     enemy_pokemon = []
@@ -444,7 +450,7 @@ while game_count < 10:
         next_superstates.append(next_state)
         rewards.append(reward)
         if game['invalid_decision'] == True:
-            rewards[-1] = rewards[-1] - 1500
+            rewards[-1] = (rewards[-1] - 2500)/2000
             print('\nINVALID DECISION REWARD: ',rewards[-1])
             game['invalid_decision'] = False
         is_done.append(done)
@@ -488,13 +494,13 @@ while game_count < 10:
         print('Broke because of some error') 
         print(game['error'])
         # TODO: handle later
-    game_count+=1
 
     print('\nERROR: ', game['error'])
     agent_file = 'pokAImon' + str(game_count) + '.pt'
 
     torch.save(agent.state_dict(), agent_file)
     browser.quit()
+    game_count+=1
 
     #SAVE LOSS AND REWARDS WITH PICKLE
     import pickle
