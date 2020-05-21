@@ -111,7 +111,10 @@ def getActivePokemon(browser):
                     move = x[0]
                     # move_type = x[1]
                     pp_div = element.find_element_by_class_name('pp')
-                    move_pp = int(pp_div.text.split('/')[0])
+                    try:
+                        move_pp = int(pp_div.text.split('/')[0])
+                    except:
+                        move_pp = 10
                     m['move'] = move
                     # call movedex for deets
                     dex_start = time.time()
