@@ -32,3 +32,12 @@ def getTypeOhe(m_type):
     else:
         return [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
+def getTypeKey(m_type):
+    if m_type == [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]:
+        return 'nil'
+    for key,value in typedex.items():
+        if value == m_type:
+            return key
+    
+    return 'nil'
+
