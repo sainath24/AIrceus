@@ -5,11 +5,16 @@
 import typedex
 
 EFFECTIVE_MUL = 2
-NORMAL_MUL = 1
-WEAK_MUL = 0.5
-NO_EFFECT_MUL = 0
+NORMAL_MUL = 0
+WEAK_MUL = -1
+NO_EFFECT_MUL = -2
 
 data = {
+    'nil': {
+        'effective':[],
+        'weak':[],
+        'no_effect':[]
+    },
     'normal': {
         'effective':[],
         # 'normal':['normal','fighting','flying','poison','ground','bug','fire','water','grass','electric','psychic','ice','dragon','dark','fairy'],
