@@ -6,8 +6,8 @@ def genReward(old_state, new_state, game):
     global enemy_num, my_num
     #MY POKEMON
     # mhp = ((new_state[0] - old_state[0])) * 1.5
-    mhp = (new_state[0] - old_state[0])
-    mhp = mhp * 0.5 if mhp > 0 else mhp #GAIN IN HP IS REGARDED LOWER SO AS TO NOT SPAM
+    mhp = (new_state[0] - old_state[0]) * 1.25
+    mhp = mhp * 0.75 if mhp > 0 else mhp #GAIN IN HP IS REGARDED LOWER SO AS TO NOT SPAM
     #STATS START AT 38
     matk = (new_state[38] - old_state[38])
     mdef = (new_state[39] - old_state[39])
@@ -19,10 +19,10 @@ def genReward(old_state, new_state, game):
     tm = (mhp + mstat) * 1.25
 
     if game['switch_count'] > 1:
-        tm -= game['switch_count'] * tm/1.25 #CONSECUTIVE SWITCHES LEADS TO PEANLTY
+        tm -= tm/1.5 #game['switch_count'] * tm/1.25 #CONSECUTIVE SWITCHES LEADS TO PEANLTY
 
     # ENEMY POKEMON starts at 147
-    ehp =  (new_state[147]/1.25 + new_state[147] - old_state[147]) * 2.5
+    ehp =  (new_state[147]/1.25 + new_state[147] - old_state[147]) * 1.25
     # ENEMY STATS START AT 187
     eatk = ((new_state[187] - old_state[187]))
     edef = ((new_state[188] - old_state[188]))
@@ -30,9 +30,9 @@ def genReward(old_state, new_state, game):
     espd = ((new_state[190] - old_state[190]))
     espe = ((new_state[191] - old_state[191]))
 
-    estat = (eatk + edef + espa + espd + espe) * 1.75
+    estat = (eatk + edef + espa + espd + espe)
 
-    te = (ehp + estat) * 2
+    te = (ehp + estat) * 1.25
 
     total = tm - te
 
@@ -53,4 +53,4 @@ def genReward(old_state, new_state, game):
             total+= 1000 #abs(2*total)
         print('FINAL REWARD ', total)
 
-    return total/2000
+    return total/1000 if total>0 else abs(total/8000)
