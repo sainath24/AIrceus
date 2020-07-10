@@ -558,7 +558,7 @@ def getActivePokemonElement(browser):
     return pokemon
 
 
-def getSwitchablePokemonNames(browser):
+def getSwitchablePokemonElement(browser,pokemon_name):
     switchable_list = getActivePokemonElement(browser)
     actions = ActionChains(browser)
     switch_pokemon_list = WebDriverWait(browser, 60).until(EC.presence_of_all_elements_located((By.NAME, "chooseSwitch")))#browser.find_elements_by_name('chooseSwitch')
@@ -575,9 +575,12 @@ def getSwitchablePokemonNames(browser):
         # for j in range(len(name_level) - 1):
         #     name+= name_level[j] + ' '
         # name = name[:len(name)-1] #Name of pokemon
-        switchable_list[str(name_level[0])] = element  
+        # switchable_list[str(name_level[0])] = element  
 
-    return switchable_list
+        if str(name_level[0]) == pokemon_name:
+            return element
+
+    return None
 
 def getMoveElement(browser, move):
     active_moves = getCurrentActiveMoves(browser)
@@ -594,13 +597,16 @@ def getMoveElement(browser, move):
     return None
 
 def getSwitchElement(browser, pokemon):
-    switch_pokemon = getSwitchablePokemonNames(browser)
+    switch_pokemon = getSwitchablePokemonElement(browser,pokemon['name'])
     # print('\nSWITCHABLE POKEMON:' + str(switch_pokemon))
     # print('\nCHOSEN SWITCH: ' + str(pokemon))
-    if pokemon['name'] in switch_pokemon.keys():
-        print('\nRETURNING SWITCH ELEMENT\n')
-        return switch_pokemon[pokemon['name']]
-    return None
+
+    return switch_pokemon
+
+    # if pokemon['name'] in switch_pokemon.keys():
+    #     print('\nRETURNING SWITCH ELEMENT\n')
+    #     return switch_pokemon[pokemon['name']]
+    # return None
 
 
 
