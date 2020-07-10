@@ -11,7 +11,7 @@ import pickle
 import numpy as np
 
 class expr_replay():
-    def __inti__(self,filename, max_records = 50000):
+    def __init__(self,filename, max_records = 50000):
         self.filename = filename
         self.max_records = max_records
         try:
@@ -23,10 +23,19 @@ class expr_replay():
     def addReplay(self,superstate,action,nn_action,reward,next_superstate,isdone):
         data = []
         try:
-            with open(self.filename,'wb') as file:
+            with open(self.filename,'rb') as file:
+                print('\nEXP REPLAY: FILE rb OPENED')
                 data = pickle.load(file)
+                print('\nEXP REPLAY: FILE loaded ')
+                file.close()
+        except:
+            print('\nEXP REPLAY: EMPTY FILE')
+        try:
+            with open(self.filename,'wb') as file:
+                print('\nEXP REPLAY: FILE wb OPENED')
                 if data == []:
-                    data = [superstate,action,nn_action,reward,next_superstate,isdone]
+                    data = [[superstate],[action],[nn_action],[reward],[next_superstate],[isdone]]
+                    # print('\nEXP REPLAY: EMPTY ADDED: ', data)
                 else:
                     data[0].append(superstate)
                     data[1].append(action)
@@ -34,13 +43,15 @@ class expr_replay():
                     data[3].append(reward)
                     data[4].append(next_superstate)
                     data[5].append(isdone)
-                if len(data) > self.max_records: # CUT EXCESSIVE RECORDS FROM THE STARTING
+                    # print('\nEXP REPLAY: NOT EMPTY ADDED: ', data)
+                if len(data[0]) > self.max_records: # CUT EXCESSIVE RECORDS FROM THE STARTING
                     data[0] = data[0][len(data) - self.max_records:]
                     data[1] = data[1][len(data) - self.max_records:]
                     data[2] = data[2][len(data) - self.max_records:]
                     data[3] = data[3][len(data) - self.max_records:]
                     data[4] = data[4][len(data) - self.max_records:]
                     data[5] = data[5][len(data) - self.max_records:]
+                    # print('\nEXP REPLAY: EXCEEDED NUMBER: ', data)
                 pickle.dump(data,file)
                 file.close()
         except:
