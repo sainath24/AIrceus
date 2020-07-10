@@ -33,7 +33,7 @@ def getActivePokemonInfo(active_pokemon,active_moves = None):
         # print('\nACP:' + str(t))
     if len(acp_type) == 1: # extend with nil type
         # print('\nACP ADD TYPE NIL')
-        acp.extend(typedex.getTypeOhe('nil'))
+        acp.extend([0] * 18)
         # print('\nACP ADD TYPE NIL DONE')
         # print('\nACP:' + str(typedex.getTypeOhe('nil')))
     
@@ -73,10 +73,10 @@ def getActivePokemonInfo(active_pokemon,active_moves = None):
                     acp_moves.append(mdict['Spe'])
                     # print('\nACP:' + str(mdict['Spe']))
                 else:
-                    acp_moves.extend(null_move)
+                    acp_moves.extend([0]*26)
 
         for i in range(len(active_moves), 4):
-            acp_moves.extend(null_move)
+            acp_moves.extend([0]*26)
     
     else: #INAVTIVE POKEMON
         for mdict in moves:
@@ -101,6 +101,9 @@ def getActivePokemonInfo(active_pokemon,active_moves = None):
                 # print('\nACP:' + str(mdict['Spe']))
             else:
                 acp_moves.extend([0]*26)
+        
+        for _ in range(len(acp_moves),104):
+            acp_moves.append(0)
         # for i in range(len(moves), 4):
         #     acp_moves.extend(null_move)
         
@@ -160,7 +163,7 @@ def generateSuperState(active_pokemon, active_moves, my_pokemon, enemy_pokemon, 
             team.extend(getActivePokemonInfo(pokemon))
         elif active_pokemon != None and active_pokemon['name'] == pokemon['name']:
             team.extend(getActivePokemonInfo(pokemon,active_moves))
-            print('\nTEAM LENGTH:' + str(len(team)))
+        print('\nTEAM LENGTH:' + str(len(team)))
     if len(my_pokemon) < 6:
         print('TEAM LENGTH IS NOT 6:' + str(len(my_pokemon)))
         for _ in range(len(team),882):
@@ -195,10 +198,8 @@ def generateStateForMoveChooser(superState, make = True):
     # MY POKEMON COUNT AND ENEMY POKEMON COUNT - 2
     # TOTAL - 194
     if make == False:
-        null_state = []
-        for _ in range(194):
-            null_state.append(0)
-        return 
+        null_state = [0] * 194
+        return null_state
         
     # print('\nGENERATEMOVECHOOSER: ',superState)
 
@@ -218,9 +219,9 @@ def generateStateforSwitchChooser(superState, make = True):
     # TOTAL - 1074
 
     if make == False:
-        null_state = []
-        for _ in range(1074):
-            null_state.append(0)
+        null_state = [0] * 1074
+        # for _ in range(1074):
+        #     null_state.append(0)
         return null_state
 
     # print('\nGENERATESWITCHCHOOSER:',superState)
