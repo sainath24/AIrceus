@@ -11,6 +11,12 @@ import gen_state
 import brains
 import gen_reward
 import torch
+import torch.nn as nn
+import expr_replay
+import enhance_move_values
+import enhance_switch_values
+import enhance_decision_values
+import numpy as np
 
 
 
@@ -26,6 +32,10 @@ rewards = []
 losses= []
 is_done = []
 active_moves = []
+nn_actions = [] #STORE SPECIFIC ACTION OF MOVE AND SWITCH NETWORK TO TRAIN
+
+NEW_BROWSER_NEEDED = True
+
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('\nDEVICE: ' + str(device) + '\n')
@@ -39,22 +49,22 @@ def randomBattle(browser):
 
     actions = ActionChains(browser)
 
+    time.sleep(10) # LET LOGIN SUCCEED
+
     battle_type_button = WebDriverWait(browser,30).until(EC.presence_of_element_located((By.NAME, "format")))
     battle_type_button.click()
     time.sleep(2)
-    gen4_button = WebDriverWait(browser,30).until(EC.presence_of_all_elements_located((By.NAME, "selectFormat")))
-
-    for button in gen4_button:
-        print('\n' + button.get_attribute('value'))
-        if button.get_attribute('value') == 'gen4randombattle':
-            print('\nGEN 4 BUTTON\n')
-            # button.click()
-            actions.move_to_element(button).perform()
-            actions.click().perform()
-            time.sleep(2)
-            break
+    popupmenu = WebDriverWait(browser,30).until(EC.presence_of_all_elements_located((By.CLASS_NAME, "popupmenu")))
+    popupmenu = popupmenu[1]
+    li = popupmenu.find_elements_by_xpath('.//li')
+    li = li[21]
+    gen4_button = WebDriverWait(li,30).until(EC.element_to_be_clickable((By.NAME,"selectFormat")))
+    time.sleep(2)
+    
+    actions.move_to_element(gen4_button).click().perform()
 
     time.sleep(2)
+
     # start battle with random opponet
     battle_button = WebDriverWait(browser,5).until(EC.presence_of_element_located((By.NAME, "search")))
     battle_button.click() #iniate gen 4 random battle
@@ -72,31 +82,82 @@ def makeMove(state): # RETURNS ACTION
     global my_pokemon
     global active_pokemon
     global active_moves
+    global nn_actions
+    global opp_pokemon
+    global my_pokemon
 
     decision_q,move_q,switch_q = agent.startForward(state['state'],state['must_switch'],state['must_attack'])
     decision_q = decision_q.data.cpu().numpy()
-    move_chosen = move_q.argmax()
-    switch_chosen = switch_q.argmax()
+
+    print('\nMOVE Q VALUES BEFORE UPDATE: ', move_q)
+    print('\nMOVE CHOICE BEFORE UPDATE: ', move_q.argmax())
 
     active_move_len = 0 if active_moves == None else len(active_moves)
 
-    decision, explore = agent.sample_action(decision_q,active_move_len,len(my_pokemon))
+    # PASS TO FINAL_MOVE_VALUES TO UPDATE Q_VALUES BEFORE MAKING A DECISION
+    if active_move_len != 0:
+        should_enhance = np.random.choice([0,1], p =[0.45,0.55])
+        if should_enhance == 1:
+            if len(superstates) > 1:
+                move_q = enhance_move_values.getVal(move_q,superstates[-2]['state'],active_pokemon,opp_pokemon,game)
+            else:
+                move_q = enhance_move_values.getVal(move_q,None,active_pokemon,opp_pokemon,game)
+  
+            print('\nMOVE Q VALUES AFTER UPDATE: ', move_q)
+            print('\nMOVE CHOICE AFTER UPDATE: ', move_q.argmax())
 
-    if explore:
-        # CONVERT RESULT TO PROPER DECISION
-        print('CHOSEN TO EXPLORE')
-        if decision < active_move_len:
-            move_chosen = decision
-            decision = 0
-        else:
-            switch_chosen = decision - active_move_len - 1
-            decision = 1
+    move_chosen = move_q.argmax()
+
+    print('\SWITCH Q VALUES BEFORE UPDATE: ', switch_q)
+    print('\nSWITCH CHOICE BEFORE UPDATE: ', switch_q.argmax())
+    should_enhance = np.random.choice([0,1], p = [0.45,0.55])
+    if should_enhance == 1:
+        switch_q = enhance_switch_values.getVal(switch_q,active_pokemon,my_pokemon,opp_pokemon,game)
+        print('\SWITCH Q VALUES AFTER UPDATE: ', switch_q)
+        print('\nSWITCH CHOICE AFTER UPDATE: ', switch_q.argmax())
+
+    switch_chosen = switch_q.argmax()
+    
+    decision = decision_q.argmax()
+    ### DO NOT EXPLORE ###
+    # decision, explore = agent.sample_action(decision_q,active_move_len,len(my_pokemon))
+    if state['must_switch'] == True:
+        decision = 1
+    
+    elif state['must_attack'] == True or len(my_pokemon) == 1:
+        decision = 0
+
+    ### DO NOT EXPLORE ###
+    # elif explore:
+    #     # CONVERT RESULT TO PROPER DECISION
+    #     print('\nCHOSEN TO EXPLORE\n')
+    #     if decision < active_move_len:
+    #         move_chosen = decision # CONSIDER ONLY NN CHOICE
+    #         decision = 0
+    #     else:
+    #         switch_chosen = decision - active_move_len
+    #         decision = 1
+
+    else:
+        print('\DECISION Q VALUES BEFORE UPDATE: ', decision_q)
+        print('\nDECISION CHOICE BEFORE UPDATE: ', decision_q.argmax())
+        should_enhance = np.random.choice([0,1], p = [0.45,0.55])
+        if should_enhance == 1 and move_chosen <= active_move_len and switch_chosen <= len(my_pokemon):
+            if len(superstates) > 1:
+                decision_q = enhance_decision_values.getVal(decision_q, superstates[-2]['state'],active_pokemon,opp_pokemon,my_pokemon[switch_chosen],active_pokemon['moves'][move_chosen],game)
+            else:
+                decision_q = enhance_decision_values.getVal(decision_q, None,active_pokemon,opp_pokemon,my_pokemon[switch_chosen],active_pokemon['moves'][move_chosen],game)
+            print('\DECISION Q VALUES AFTER UPDATE: ', decision_q)
+            print('\nDECISION CHOICE AFTER UPDATE: ', decision_q.argmax())
+    
+            decision = decision_q.argmax()
 
     # pokemon_actions.append(decision)
 
     print('\nDECISIONNNNN:' + str(decision))
 
     if decision == 0:
+        nn_actions.append(move_chosen)
         if state['must_switch'] == True:
             print('\nTRYING TO MOVE WHEN MUST SWITCH\n')
             # game['active'] = False
@@ -118,6 +179,15 @@ def makeMove(state): # RETURNS ACTION
                 element = pd.getMoveElement(browser,move)
                 if element != None:
                     game['switch_count'] = 0
+                    # nn_actions.append(move_chosen)
+
+                    # SET PREVIOUS MOVE AND MOVE REPETIION PENALITY
+                    if move['move'] == game['previous_move']:
+                        game['move_repetition'] = game['move_repetition'] + 1
+                    else:
+                        game['move_repetition'] = 1
+                    game['previous_move'] = move['move']
+
                     element.click()
                 else:
                     print('\nCHOSEN MOVE DOES NOT EXIST\n')
@@ -126,11 +196,12 @@ def makeMove(state): # RETURNS ACTION
                     game['error'] = 'CHOSEN DECISION DOES NOT EXIST'
                     game['invalid_decision'] = True
     else:
+        nn_actions.append(switch_chosen)
         if state['must_attack'] == True:
             print('\nTRIED TO SWITCH WHEN MUST ATTACK\n')
             # game['active'] = False
             # game['my_pokemon'] = 0
-            game['error'] = 'RIED TO SWITCH WHEN MUST ATTACK'
+            game['error'] = 'TRIED TO SWITCH WHEN MUST ATTACK'
             game['invalid_decision'] = True
         else:
             print('\nCHOSEN INDEX:' + str(switch_chosen))
@@ -150,22 +221,25 @@ def makeMove(state): # RETURNS ACTION
                 if state['must_switch'] == False and switch_pokemon['name'] == active_pokemon['name']:
                     print('\nSWITCHED TO SAME ACTIVE POKEMON\n')
                     moves = active_pokemon['moves']
-                    if move_chosen >= len(moves):
-                        print('\nMOVE NOT AVAILABLE\n')
-                        game['invalid_decision'] = True
-                    else:
-                        move = moves[move_chosen]
-                        print('\nCHOSEN MOVE:' + str(move))
-                        element = pd.getMoveElement(browser,move)
-                        if element != None:
-                            game['switch_count'] = 0;
-                            element.click()
-                        else:
-                            print('\nCHOSEN MOVE DOES NOT EXIST\n')
-                            # game['active'] = False
-                            # game['my_pokemon'] = 0
-                            game['error'] = 'CHOSEN DECISION DOES NOT EXIST'
-                            game['invalid_decision'] = True
+                    game['error'] = 'SWITCHED TO SAME POKEMON'
+                    game['invalid_decision'] = True
+
+                    # if move_chosen >= len(moves):
+                    #     print('\nMOVE NOT AVAILABLE\n')
+                    #     game['invalid_decision'] = True
+                    # else:
+                    #     move = moves[move_chosen]
+                    #     print('\nCHOSEN MOVE:' + str(move))
+                    #     element = pd.getMoveElement(browser,move)
+                    #     if element != None:
+                    #         game['switch_count'] = 0;
+                    #         element.click()
+                    #     else:
+                    #         print('\nCHOSEN MOVE DOES NOT EXIST\n')
+                    #         # game['active'] = False
+                    #         # game['my_pokemon'] = 0
+                    #         game['error'] = 'CHOSEN DECISION DOES NOT EXIST'
+                    #         game['invalid_decision'] = True
 
                 else:
                     element = pd.getSwitchElement(browser,switch_pokemon)
@@ -174,6 +248,7 @@ def makeMove(state): # RETURNS ACTION
                         element.click()
                         active_pokemon = switch_pokemon
                         game['active_pokemon'] = active_pokemon
+                        # nn_actions.append(switch_chosen)
                     else:
                         print('\nCHOSEN POKEMON DOES NOT EXIST\n')
                         # game['active'] = False
@@ -215,7 +290,7 @@ def play(): # RETURN STATE, REWARD, IS_DONE
     print('\nSEARCHING FOR CONTROLS\n')
     while True:
         try:
-            controls = WebDriverWait(browser,5).until(EC.presence_of_all_elements_located((By.CLASS_NAME, "controls")))
+            controls = WebDriverWait(browser,3).until(EC.presence_of_all_elements_located((By.CLASS_NAME, "controls")))
             if len(controls) > 0 and 'Waiting for opponent...' in controls[0].text:
                 # print('\nENEMY HAS NOT MADE A MOVE\n')
                 pass
@@ -227,7 +302,7 @@ def play(): # RETURN STATE, REWARD, IS_DONE
             break
 
     print('\nWAITING FOR ANIMATIONS\n')
-    time.sleep(6) # WAIT FOR ANIMATIONS TO GET OVER
+    time.sleep(4) # WAIT FOR ANIMATIONS TO GET OVER was 6
     print('\nDONE WAITING FOR ANIMATIONS\n')
 
     # HANDLE MOVES SUCH AS U-TURN WHERE ENEMY HAS TO SWITCH AFTER MOVE
@@ -306,10 +381,13 @@ def play(): # RETURN STATE, REWARD, IS_DONE
                 # active_pokemon_new = pd.getActivePokemon(browser) #new state of active pokemon
                 active_pokemon = pd.getActivePokemon(browser)
             else: # GET MODIFIED STATS AND HEALTH ALONE
-                # active_pokemon_new = active_pokemon
+            #     # active_pokemon_new = active_pokemon
                 active_pokemon['hp'],active_pokemon['Atk'],active_pokemon['Def'],active_pokemon['SpA'],active_pokemon['SpD'],active_pokemon['Spe'] = pd.getActiveModifiedStatsAndHpFromSprite(browser)
             game['active_pokemon'] = active_pokemon
             # active_pokemon = active_pokemon_new
+            for i in range(len(my_pokemon)):
+                if my_pokemon[i]['name'] == active_pokemon['name']:
+                    my_pokemon[i] = active_pokemon
             print('Active Pokemon:' + str(active_pokemon))
         
         elif move_switch.text == 'Switch': #MUST SWITCH
@@ -329,6 +407,12 @@ def play(): # RETURN STATE, REWARD, IS_DONE
                     game['active'] = False #GAME IS OVER
                     return playReturn(True)
             
+            else:
+                for i in range(len(my_pokemon)):
+                    if my_pokemon[i]['name'] == active_pokemon_new['name']:
+                        my_pokemon[i] = active_pokemon_new
+
+            
             # get updates
             print('POKEMON: ' + str(active_pokemon))
 
@@ -346,178 +430,246 @@ def play(): # RETURN STATE, REWARD, IS_DONE
         return playReturn(True)
 
 
-# CURRENTLY TESTING WITH SMALL REWARDS
+# CURRENTLY TESTING WITH SMALL REWARDS, NOT TRAINING FINAL NETWORK
 
-game_count = 2
+game_count = 810
 win_count = 0
-loss_count = 2
+loss_count = 0
 
 if game_count != 0:
-    agent.load_state_dict(torch.load('pokAImon' + str(game_count-1) + '.pt'))
+    agent.load_state_dict(torch.load('pokAImon' + str(game_count-1) + '.pt',map_location=torch.device('cpu')))
 
 
-while game_count < 3:
+while game_count < 811:
 
-    my_pokemon = []
-    enemy_pokemon = []
-    opp_pokemon = None
-    active_pokemon = None
-    superstates = []
-    next_superstates = []
-    pokemon_actions = []
-    rewards = []
-    losses = []
-    is_done = []
-    active_moves = []
+    try:
+        my_pokemon = []
+        enemy_pokemon = []
+        opp_pokemon = None
+        active_pokemon = None
+        superstates = []
+        next_superstates = []
+        pokemon_actions = []
+        rewards = []
+        losses = []
+        is_done = []
+        active_moves = []
+        grad_norm = []
+        nn_actions = [] #STORE SPECIFIC ACTION OF MOVE AND SWITCH NETWORK TO TRAIN
 
-    target_network.load_state_dict(agent.state_dict())
-
-    browser = webdriver.Edge('C:/Users/saina/Files/projects/PokemonShowdownAI/edge_driver/msedgedriver.exe')
-    browser.get('https://play.pokemonshowdown.com/')
-
-    actions = ActionChains(browser)
-
-    login_button = WebDriverWait(browser, 30).until(EC.presence_of_element_located((By.NAME, "login")))#browser.find_element_by_name('login')
-    login_button.click() #click login button
-
-    username = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.NAME, "username")))#browser.find_element_by_name('username')
-    username.send_keys('saroja')
-    username.send_keys(Keys.ENTER) #login with a name
+        expr = expr_replay.expr_replay('pokAImon_expr_50000.dat',50000) # CREATE EXPERIENCE REPLAY OBJECT
 
 
-    # ACCEPT CHALLENGE WHILE TESTING
-    accept_challenge_button = WebDriverWait(browser, 60).until(EC.presence_of_element_located((By.NAME, "acceptChallenge")))#browser.find_element_by_name('acceptChallenge')
-    accept_challenge_button.click()
+        agent_file = 'pokAImon' + str(game_count) + '.pt'
+
+        target_network.load_state_dict(agent.state_dict())
+
+        if NEW_BROWSER_NEEDED:
+            browser = webdriver.Edge('C:/Users/saina/Files/projects/PokemonShowdownAI/edge_driver/msedgedriver.exe')
+            browser.get('https://play.pokemonshowdown.com/')
 
 
-    # randomBattle(browser)
-    # time.sleep(3) # LET WEBPAGE LOAD IRRESPECTIVE OF EXPLICIT WAITS
+            actions = ActionChains(browser)
 
-    # GET AI POKEMON LIST AS WELL AS CURRENT ACTIVE POKEMON
-    active_pokemon = pd.getActivePokemon(browser)
-    my_pokemon.append(active_pokemon)
+            login_button = WebDriverWait(browser, 30).until(EC.presence_of_element_located((By.NAME, "login")))#browser.find_element_by_name('login')
+            login_button.click() #click login button
 
-    inactive_pokemon = pd.getInactivePokemon(browser)
-    my_pokemon.extend(inactive_pokemon)
+            username = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.NAME, "username")))#browser.find_element_by_name('username')
+            username.send_keys('wisbiac')
+            username.send_keys(Keys.ENTER) #login with a name
 
-    print('My_Pokemon: ' + str(my_pokemon))
-
-    # GET ACTIVE ENEMY POKEMON
-    opp_pokemon = pd.getActiveEnemyPokemon(browser)
-    # print(opp_pokemon)
-
-    # GAME OBJECT CONAINS INFO ABOUT CURRENT GAME, yes i know its not an object and its a dictionary
-    game = {
-        'active' : True,
-        'forfeit' : False,
-        'active_pokemon': active_pokemon,
-        'enemy_active_pokemon': opp_pokemon,
-        'enemy_pokemon': 6,
-        'my_pokemon': 6,
-        'switch_count' : 0,
-        'error' : 'nil', # CAN BE USED TO FIND LAST ERROR 
-        'invalid_decision' : False
-    }
+            NEW_BROWSER_NEEDED = False
 
 
-    # MAKE INITIAL STATE
-    active_moves = pd.getCurrentActiveMoves(browser) 
-    isSwitchPossible = pd.isSwitchPossible(browser)
-
-    must_attack = True if isSwitchPossible == False else False
-    must_switch = False
+        # ACCEPT CHALLENGE WHILE TESTING
+        accept_challenge_button = WebDriverWait(browser, 60).until(EC.presence_of_element_located((By.NAME, "acceptChallenge")))#browser.find_element_by_name('acceptChallenge')
+        accept_challenge_button.click()
 
 
-    opp_pokemon = pd.getActiveEnemyPokemon(browser) # FAILS TO GET SPEED SOMETIMES
-    state = {}
-    state['must_attack'] = must_attack
-    state['must_switch'] = must_switch
-    state['state'] = gen_state.generateSuperState(active_pokemon,active_moves,my_pokemon,opp_pokemon,game)
+        # randomBattle(browser)
+        # time.sleep(3) # LET WEBPAGE LOAD IRRESPECTIVE OF EXPLICIT WAITS
 
-    step_count = 0
-    refresh_frequency = 6
-    loss_history = []
-    loss_frequency = 3
-    #MAIN GAME CONTROL SYSTEM
-    while game['active']:
-        step_count +=1
-        superstates.append(state)
-        start = time.time()
-        pokemon_action = makeMove(state)
-        print('\n\nMAKE MOVE DURATION: ', time.time() - start)
-        pokemon_actions.append(pokemon_action)
-        next_state, reward, done = play()
-        next_superstates.append(next_state)
-        rewards.append(reward)
-        if game['invalid_decision'] == True:
-            rewards[-1] = (rewards[-1] - 2500)/2000
-            print('\nINVALID DECISION REWARD: ',rewards[-1])
+        # GET AI POKEMON LIST AS WELL AS CURRENT ACTIVE POKEMON
+        active_pokemon = pd.getActivePokemon(browser)
+        my_pokemon.append(active_pokemon)
+
+        inactive_pokemon = pd.getInactivePokemon(browser)
+        my_pokemon.extend(inactive_pokemon)
+
+        print('My_Pokemon: ' + str(my_pokemon))
+
+        # GET ACTIVE ENEMY POKEMON
+        opp_pokemon = pd.getActiveEnemyPokemon(browser)
+        # print(opp_pokemon)
+
+        # GAME OBJECT CONAINS INFO ABOUT CURRENT GAME, yes i know its not an object and its a dictionary
+        game = {
+            'active' : True,
+            'forfeit' : False,
+            'active_pokemon': active_pokemon,
+            'enemy_active_pokemon': opp_pokemon,
+            'enemy_pokemon': 6,
+            'my_pokemon': 6,
+            'switch_count' : 0,
+            'error' : 'nil', # CAN BE USED TO FIND LAST ERROR 
+            'invalid_decision' : False,
+            'previous_move': '',
+            'move_repetition':0
+        }
+
+
+        # MAKE INITIAL STATE
+        active_moves = pd.getCurrentActiveMoves(browser) 
+        isSwitchPossible = pd.isSwitchPossible(browser)
+
+        must_attack = True if isSwitchPossible == False else False
+        must_switch = False
+
+
+        opp_pokemon = pd.getActiveEnemyPokemon(browser) # FAILS TO GET SPEED SOMETIMES
+        state = {}
+        state['must_attack'] = must_attack
+        state['must_switch'] = must_switch
+        state['state'] = gen_state.generateSuperState(active_pokemon,active_moves,my_pokemon,opp_pokemon,game)
+
+        step_count = 0
+        refresh_frequency = 6
+        loss_history = []
+        loss_frequency = 3
+
+        agent.epsilon = 0.2
+        #MAIN GAME CONTROL SYSTEM
+        while game['active']:
+            step_count +=1
+            superstates.append(state)
+            start = time.time()
+            pokemon_action = makeMove(state)
+            print('\n\nMAKE MOVE DURATION: ', time.time() - start)
+            pokemon_actions.append(pokemon_action)
+            next_state, reward, done = play()
+            next_superstates.append(next_state)
+            rewards.append(reward)
+            if game['invalid_decision'] == True:
+                rewards[-1] = 0#abs(rewards[-1])/80000
+                print('\nINVALID DECISION REWARD: ',rewards[-1])
+                
+            is_done.append(done)
+            
+            if game['invalid_decision'] != True:
+                expr.addReplay(state,pokemon_action,nn_actions[-1],reward,next_state,done) # ADD TO EXPERIENCE REPLAY
+
             game['invalid_decision'] = False
-        is_done.append(done)
-        state = next_state
-        agent.epsilon = agent.epsilon - (agent.epsilon/100) if agent.epsilon - (agent.epsilon/10000) > 0 else 0.1
-        print('\AGENT EPSILON:', agent.epsilon)
-        if len(superstates)%3 == 0 or done == True: # CALCULATE LOSS AND CHANGE NETWORK EVERY THREE TURNS
-            print('\nCOMPUTING LOSS\n')
-            loss = brains.compute_loss(superstates[-3:],pokemon_actions[-3:],rewards[-3:],is_done[-3:],next_superstates[-3:],agent,target_network,device)
-            losses.append(loss)
-            print('LOSSSS:', loss)
-            loss.backward()
-            opt.step()
-            opt.zero_grad()
-            print('\nLOSS BACWARD DONE\n')
 
-            if step_count % loss_frequency == 0:
-                loss_history.append(loss.data.cpu().item())
-                # grad_norm_history.append(grad_norm)
+            state = next_state
+            # agent.epsilon = agent.epsilon - (agent.epsilon/10000) if agent.epsilon - (agent.epsilon/10000) > 0 else 0.1
+            print('\AGENT EPSILON:', agent.epsilon)
+            #if len(superstates)%3 == 0 or done == True: # CALCULATE LOSS AND CHANGE NETWORK EVERY THREE TURNS
+            #    print('\nCOMPUTING LOSS\n')
+            #    loss = brains.compute_loss(nn_actions[-3:],superstates[-3:],pokemon_actions[-3:],rewards[-3:],is_done[-3:],next_superstates[-3:],agent,target_network,device)
+                
+                ##  BACKWARD IS DONE IN BRAINS.PY   ## 
+                # losses.append(loss)
+                # print('\nTraining  loss:', loss)
+                # loss.backward() #DONT BACK PROP WHILE TRAINING SEPARATE NETWORKS 
 
-        if step_count % refresh_frequency == 0:  # Load agent weights into target_network
-            print('\nREFRESHED\n')
-            target_network.load_state_dict(agent.state_dict())
+            #    grad = nn.utils.clip_grad_norm_(agent.parameters(),1000)
+            #    grad_norm.append(grad)
+            #    opt.step()
+            #    opt.zero_grad()
+            #    print('\nLOSS BACWARD DONE\n')
 
-        if done:
-            print('\nBREAKING AT DONE:', game)
-            break
+            #    if step_count % loss_frequency == 0:
+            #        loss_history.append(loss.data.cpu().item())
+                    # grad_norm_history.append(grad_norm)
 
-    # GAME IS NOT ACTIVE ANYMORE, OUTSIDE WHILE
-    if game['active'] == False:
-        if game['my_pokemon'] == 0 and game['enemy_pokemon'] > 0:
-            print('You lost')
+            #if step_count % refresh_frequency == 0:  # Load agent weights into target_network
+            #    print('\nREFRESHED\n')
+            #    target_network.load_state_dict(agent.state_dict())
+            #    torch.save(agent.state_dict(), agent_file)
+
+
+            if done:
+                print('\nBREAKING AT DONE:', game)
+                break
+
+        # GAME IS NOT ACTIVE ANYMORE, OUTSIDE WHILE
+        game_log = open('./game_log.txt','a')
+        game_log.write('===================================')
+        game_log.write('DONE: GAME ' + str(game_count) + '\n')
         
-        elif game['my_pokemon'] > 0 and game['enemy_pokemon'] == 0:
-            print('You win')
+        if game['active'] == False:
+            if game['my_pokemon'] == 0 and game['enemy_pokemon'] > 0:
+                print('You lost')
+                game_log.write('RESULT: LOSE\n')
+
+            
+            elif game['my_pokemon'] > 0 and game['enemy_pokemon'] == 0:
+                print('You win')
+                game_log.write('RESULT: WIN\n')
+
+            else:
+                print('Draw')
+                game_log.write('RESULT: DRAW\n')
 
         else:
-            print('Draw')
+            print('Broke because of some error') 
+            print(game['error'])
+            # TODO: handle later
+        
+        game_log.write('\nGAME OBJECT: ' + str(game) + '\n')
+        game_log.write('===================================\n\n')
+        game_log.close()
 
-    else:
-        print('Broke because of some error') 
-        print(game['error'])
-        # TODO: handle later
+        print('\nERROR: ', game['error'])
 
-    print('\nERROR: ', game['error'])
-    agent_file = 'pokAImon' + str(game_count) + '.pt'
+        # CLOSE THE MATCH TAB
+        close_button = WebDriverWait(browser, 30).until(EC.presence_of_element_located((By.CLASS_NAME, "closebutton")))
+        close_button.click()
 
-    torch.save(agent.state_dict(), agent_file)
-    browser.quit()
-    game_count+=1
+        torch.save(agent.state_dict(), agent_file)
+        # browser.quit()
+        
+        #SAVE LOSS AND REWARDS WITH PICKLE
+        import pickle
+        fname = 'loss_reward_grad.dat'
+        data = []
+        try:
+            with open(fname,'rb') as file:
+                data = pickle.load(file)
+        except:
+            print('\nloss rewards data file does not exist\n')
+        if len(data) == 0:
+            data = [[losses],[rewards],[grad_norm]]
+        else:
+            data[0].append(losses)
+            data[1].append(rewards)
+            data[2].append(grad_norm)
+        
+        with open(fname,'wb') as file:
+            pickle.dump(data,file)
+        
+        game_count+=1
 
-    #SAVE LOSS AND REWARDS WITH PICKLE
-    import pickle
-    fname = 'loss_reward.dat'
-    data = []
-    try:
-        with open(fname,'rb') as file:
-            data = pickle.load(file)
     except:
-        print('\nloss rewards data file does not exist\n')
-    if len(data) == 0:
-        data = [[losses],[rewards]]
-    else:
-        data[0].append(losses)
-        data[1].append(rewards)
+        print('\nMAIN: ERROR IN GAME ', game_count)
+        error_log = open('./error_log.txt','a')
+        error_log.write('===================================')
+        error_log.write('ERROR: GAME ' + str(game_count) + '\n')
+        error_log.write('\nGAME OBJECT: ' + str(game) + '\n')
+        error_log.write('===================================\n\n')
+        error_log.close()
+
+        close_button = WebDriverWait(browser, 10).until(EC.presence_of_all_elements_located((By.CLASS_NAME, "closebutton")))
+        
+        if len(close_button) > 0:
+            close_button[0].click()       
+        else:
+            browser.quit()
+            NEW_BROWSER_NEEDED = True
     
-    with open(fname,'wb') as file:
-        pickle.dump(data,file)
+        if step_count >= 10:
+            game_count+=1
+
+    
 
 #PLAYED N NUMBER OF GAMES
