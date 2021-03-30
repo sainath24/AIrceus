@@ -35,3 +35,31 @@ class Game:
         self.win = player
     def set_tie(self, tie):
         self.tie = tie
+
+    def is_new(self):
+        if self.p1_pokemon == [] or self.p2_pokemon == []:
+            return True
+        return False
+    
+    def get_pokemon_pos(self, pokemon_details, player_identifier):
+        if player_identifier == 'p1':
+            for i in range(0, len(self.p1_pokemon)):
+                if pokemon_details == self.p1_pokemon[i].name:
+                    return i
+        elif player_identifier == 'p2':
+            for i in range(0, len(self.p2_pokemon)):
+                if pokemon_details == self.p2_pokemon[i].name:
+                    return i
+
+    def get_dict(self):
+        game = {}
+        game['weather'] = self.weather
+        game['p1_base'] = self.p1_base
+        game['p2_base'] = self.p2_base
+        game['p1_pokemon'] = [pokemon.get_dict() for pokemon in self.p1_pokemon]
+        game['p2_pokemon'] = [pokemon.get_dict() for pokemon in self.p2_pokemon]
+        game['win'] = self.win
+        game['tie'] = self.tie
+        
+        return game
+
