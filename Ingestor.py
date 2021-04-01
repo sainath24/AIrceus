@@ -2,6 +2,7 @@ import threading
 import json
 import ingestor_tools
 from queue import Queue
+from config import config
 
 class Ingestor:
     def __init__(self, data_queue, translator, brain, game) -> None:
@@ -10,11 +11,18 @@ class Ingestor:
         self.brain = brain
         self.game = game
         self.switch_queue = Queue()
+        self.step = 0
+        self.game_end = False
+        self.batch_size = config['batch_size']
+    
+    def set_queue(self, data_queue):
+        self.data_q = data_queue
 
     def start(self,threaded = True):
         if threaded:
             ingestor_thread = threading.Thread(target=self.run)
             ingestor_thread.start()
+            ingestor_thread.join() # USED TO EXIT GAME WHEN OVER
         else:
             self.run()
 
@@ -50,21 +58,32 @@ class Ingestor:
 
     def choose_switch(self, player_identifier):
         # TODO: USE BRAIN TO CHOOSE SWITCH
+        action = self.brain.get_action(self.game, self.step)
+
         switch_pokemon = 2
         action = '>' + player_identifier + ' switch ' + str(switch_pokemon) + '\n'
         self.translator.write_action_queue(action)
+        
+        if (self.step + 1) % self.batch_size == 0: # RESET STEP TO 1
+            self.step = 1
+        else:
+            self.step += 1
 
     def take_decision(self):
         # TODO: USE BRAIN TO DECIDE AND TRANSLATOR TO TRANSLATE
         # action = brain.get_action(game)
         # action = translator.translate(action)
         # translator.write_action_queue(action)
-
+        action = self.brain.get_action(self.game, self.step)
         # FOR TEST
         action = '>p1 move 1\n'
         self.translator.write_action_queue(action)
         action = '>p2 move 1\n'
         self.translator.write_action_queue(action)
+        if (self.step + 1) % self.batch_size == 0: # RESET STEP TO 1
+            self.step = 1
+        else:
+            self.step += 1
     
     def game_over(self, player_identifier = None, tie = False):
         if tie: # GAME IS A TIE
@@ -73,6 +92,9 @@ class Ingestor:
             self.game.set_win(player_identifier)
         
         ## CALL BRAIN GAME OVER AND PASS STEP
+        self.brain.game_over(self.game, self.step)
+        self.translator.write_action_queue('game_over')
+        self.game_end = True
         # TODO: HANDLE GAME OVER
 
     def ingest(self,line):
@@ -84,7 +106,7 @@ class Ingestor:
                     player_identifier = self.switch_queue.get()
                     self.choose_switch(player_identifier)
 
-            print(self.game.get_dict())
+            # print(self.game.get_dict())
 
         elif '|turn|' in line: # take a normal move decision
             self.take_decision()
@@ -95,14 +117,19 @@ class Ingestor:
         elif '|win|' in line:
             self.game_over(line[len('|win|'):])
         
-        elif '|tie' in line:
+        elif '|tie' in line and '|tier' not in line:
             self.game_over(tie=True)
+
+        elif '|error' in line:
+            self.game_over(tie=True) # TODO: TEMP HANDLING ERROR
             
 
     def run(self):
-        while True:
+        while self.game_end == False:
             if not self.data_q.empty():
                 line = self.data_q.get()
                 print(line)
                 self.ingest(line)
+        self.game_end = False
+        print('\n INGESTOR GAME OVER \n')
                 
