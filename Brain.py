@@ -11,6 +11,7 @@ class Brain:
     def __init__(self, train = True) -> None:
         self.train = train 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.batch_size = config['batch_size']
 
         self.algo = None
         if config['algorithm'] == 'PPO':
@@ -19,21 +20,28 @@ class Brain:
 
 
     def update_memory(self, action, actor_probs, critic_value, state, step):
-        log_prob_action = actor_probs.log_prob(action)
+        if (step + 1) % self.batch_size != 0:
+            log_prob_action = actor_probs.log_prob(action)
 
-        self.algo.insert_state(state, step)
-        self.algo.insert_action(action, step)
-        self.algo.insert_log_prob_action(log_prob_action)
-        self.algo.insert_value(action, critic_value)
-        self.algo.insert_done(0, step)
+            self.algo.insert_state(state, step)
+            self.algo.insert_action(action, step)
+            self.algo.insert_log_prob_action(log_prob_action, step)
+            self.algo.insert_value(critic_value, step)
+            self.algo.insert_done(torch.tensor(0.0, dtype=torch.float, device=self.device), step)
 
         self.update(step)
+
+    def compute_rewards(self, state, step):
+        if step > 0:
+            # TODO: COMPUTE ACTUAL REWARDS
+            reward = torch.tensor(1.0, dtype=torch.float, device=self.device)
+            self.algo.insert_reward(reward, step)
         
 
     def get_action(self, game, step):
         state, invalid_actions = self.create_state(game)
-        state = torch.tensor(state, dtype=torch.float, device=self.device)
-        actor_values, critic_values = self.PPO.a2c(state)
+        # state = torch.tensor(state, dtype=torch.float, device=self.device) RETURN STATE AS TENSOR
+        actor_values, critic_values = self.algo.a2c(state)
 
         # TODO: use invalid_actions to mask invalid actions and choose
         actor_probs = Categorical(actor_values)
@@ -43,23 +51,28 @@ class Brain:
             self.update_memory(action, actor_probs, critic_values, state, step)
 
         # TODO: COMPUTE REWARDS AND APPEND AT STEP -1
+        if (step + 1) % self.batch_size != 0:
+            self.compute_rewards(state, step-1)
 
         return action.item()
 
     
     def create_state(self, game):
-        state = None
+        state = torch.zeros(25, device = self.device) # TEMP STATE
 
-        return state
+        return state, None
 
     def update(self, step):
-        if step + 1 % config['batch_size'] == 0: # TIME TO UPDATE
+        if (step + 1) % self.batch_size == 0: # TIME TO UPDATE
             policy_loss, value_loss = self.algo.update()
             # TODO: wandb log these
 
     def game_over(self, game, step):
         # TODO: COMPUTE LAST REWARDS AND APPEND AT STEP -1
-        self.algo.insert_done(1, step-1)
+        state, invalid_actions = self.create_state(game)
+        if (step + 1) % self.batch_size != 0:
+            self.algo.insert_done(torch.tensor(1.0, dtype=torch.float, device=self.device), step-1)
+            self.compute_rewards(state, step -1)
 
         self.update(step)
 

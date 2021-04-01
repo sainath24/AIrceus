@@ -1,17 +1,19 @@
 config = {
     'model': '/model.pth',
     'optim': '/optim.pth',
-    'episodes': 1000,
-    'state_size': None,
-    'action_size': None,
-    'hidden_size':None,
+    'optim_lr': 1e-4,
+    'episodes': 5,
+    'state_size': 25,
+    'action_size': 10,
+    'hidden_size':50,
     'algorithm':'PPO',
-    'batch_size': 1000,
-    'num_mini_batches': 100,
-    'epochs': 10,
+    'batch_size': 6,
+    'num_mini_batches': 2,
+    'epochs': 5,
     'clip_param': 0.2,
-    'value_loss_ceof': 0.0,
-    'entropy_coeff' : 0.0,
-    'max_grad_norm' : 0.0
+    'value_loss_coef': 1,
+    'entropy_coef' : 1e-2,
+    'max_grad_norm' : 0.0, # NOT USED
+    'gamma': 0.99
     ## TODO: ADD REST OF THE CONFIG AND SET PARAMS
 }

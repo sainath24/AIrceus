@@ -65,3 +65,13 @@ class Game:
         
         return game
 
+    def reset(self):
+        self.weather = ''
+        self.p1_base = []
+        self.p2_base = []
+        self.p1_pokemon = []
+        self.p2_pokemon = []
+        self.win = ''
+        self.tie = False
+
+
