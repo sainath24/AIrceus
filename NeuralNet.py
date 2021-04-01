@@ -3,11 +3,11 @@ import torch.nn as nn
 
 class NeuralNet(nn.Module):
     def __init__(self, state_size, action_size, hidden_size):
-        super().__init__()
+        super(NeuralNet, self).__init__()
         self.actor = nn.Sequential(
             nn.Linear(state_size, hidden_size), nn.Tanh(),
             nn.Linear(hidden_size, hidden_size), nn.Tanh(),
-            nn.Linear(hidden_size, action_size), nn.Softmax()
+            nn.Linear(hidden_size, action_size), nn.Softmax(dim = -1)
         )
 
         self.critic = nn.Sequential(
