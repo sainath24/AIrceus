@@ -33,8 +33,10 @@ class Game:
     
     def set_win(self, player):
         self.win = player
+        # GAME OVER
     def set_tie(self, tie):
         self.tie = tie
+        # GAME OVER
 
     def is_new(self):
         if self.p1_pokemon == [] or self.p2_pokemon == []:
