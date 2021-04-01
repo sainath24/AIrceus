@@ -27,11 +27,12 @@ class PPO:
         self.dones = torch.zeros(self.batch_size, 1, device=self.device)
 
         self.a2c = NeuralNet(self.state_size, self.action_size, self.hidden_size)
-        self.optimiser = optim.Adam(self.nn.parameters(), lr=1e-4)
+        self.optimiser = optim.Adam(self.a2c.parameters(), lr=config['optim_lr'])
 
         self.value_loss_coef = config['value_loss_coef']
-        self.entropy_coef = config['entropy_coeff']
+        self.entropy_coef = config['entropy_coef']
         self.max_grad_norm = config['max_grad_norm'] ## NOT USED
+        self.gamma = config['gamma']
         
         self.a2c.to(self.device)
 
@@ -54,12 +55,15 @@ class PPO:
         self.dones[step].copy_(done) 
 
     def calculate_returns(self):
-        # TODO: CALCULATE RETURNS IN REWARDS ITSELF
-        pass
+        # TODO: IMPLEMENT GAE
+        for i in reversed(range(self.rewards.size(0))):
+            if i+1 < self.rewards.size(0):
+                self.rewards[i] = self.rewards[i] + ( 1 - self.dones[i]) * self.gamma * self.rewards[i+1] 
 
     def update(self):
         self.calculate_returns()
         advantages = self.rewards[:-1] - self.values[:-1]
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-5)
 
         data = self.data_generator(advantages)
 
@@ -83,7 +87,7 @@ class PPO:
                 value_loss = 0.5 * (rewards_batch - values).pow(2).mean()
 
                 self.optimiser.zero_grad()
-                (value_loss * self.value_loss_coef + policy_loss - entropy * self.entropy_coef).backwards()
+                (value_loss * self.value_loss_coef + policy_loss - entropy * self.entropy_coef).backward()
 
                 self.optimiser.step()
 
@@ -95,16 +99,18 @@ class PPO:
         total_policy_loss /= num_updates
         total_value_loss /= num_updates
 
+        self.post_update()
+
         return total_policy_loss, total_value_loss
 
     def data_generator(self, advantages):
         mini_batch_size = self.batch_size // self.num_mini_batches
 
-        sampler = BatchSampler(SubsetRandomSampler(range(self.batch_size)), mini_batch_size, drop_last=True)
+        sampler = BatchSampler(SubsetRandomSampler(range(self.batch_size - 1)), mini_batch_size, drop_last=True)
 
         for indices in sampler:
             states_batch = self.states[:-1].view(-1, self.state_size)[indices]
-            actions_batch = self.actions[:-1].view(-1, self.action_size)[indices]
+            actions_batch = self.actions[:-1].view(-1, 1)[indices]
             values_batch = self.values[:-1].view(-1, 1)[indices]
             rewards_batch = self.rewards[:-1].view(-1, 1)[indices]
             dones_batch = self.dones[:-1].view(-1,1)[indices]
@@ -123,5 +129,15 @@ class PPO:
         entropy = actor_probs.entropy().mean()
 
         return critic_output, action_log_probs, entropy
+    
+    def post_update(self):
+        self.states[0].copy_(self.states[-1])
+        self.actions[0].copy_(self.actions[-1])
+        self.rewards[0].copy_(self.rewards[-1])
+        self.values[0].copy_(self.values[-1])
+        self.log_prob_actions[0].copy_(self.log_prob_actions[-1])
+        self.dones[0].copy_(self.dones[-1])
+
+        
 
 
