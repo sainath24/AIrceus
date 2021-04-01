@@ -47,7 +47,34 @@ class Ingestor:
     def weather_change(self, weather):
         weather = weather.split('|')[0]
         self.game.set_weather(weather)
-            
+
+    def choose_switch(self, player_identifier):
+        # TODO: USE BRAIN TO CHOOSE SWITCH
+        switch_pokemon = 2
+        action = '>' + player_identifier + ' switch ' + str(switch_pokemon) + '\n'
+        self.translator.write_action_queue(action)
+
+    def take_decision(self):
+        # TODO: USE BRAIN TO DECIDE AND TRANSLATOR TO TRANSLATE
+        # action = brain.get_action(game)
+        # action = translator.translate(action)
+        # translator.write_action_queue(action)
+
+        # FOR TEST
+        action = '>p1 move 1\n'
+        self.translator.write_action_queue(action)
+        action = '>p2 move 1\n'
+        self.translator.write_action_queue(action)
+    
+    def game_over(self, player_identifier = None, tie = False):
+        if tie: # GAME IS A TIE
+            self.game.set_tie(tie)
+        else:
+            self.game.set_win(player_identifier)
+        
+        ## CALL BRAIN GAME OVER AND PASS STEP
+        # TODO: HANDLE GAME OVER
+
     def ingest(self,line):
         if '|request|' in line: # get data about players
             json_data = json.loads(line[9:])
@@ -64,31 +91,18 @@ class Ingestor:
         
         elif '|-weather|' in line: # weather changes
             self.weather_change(line[len('|-weather|'):])
-
-    def choose_switch(self, player_identifier):
-        # USE BRAIN TO CHOOSE SWITCH
-        switch_pokemon = 2
-        action = '>' + player_identifier + ' switch ' + str(switch_pokemon) + '\n'
-        self.translator.write_action_queue(action)
-
-    def take_decision(self):
-        # USE BRAIN TO DECIDE AND TRANSLATOR TO TRANSLATE
-        # action = brain.get_action(game)
-        # action = translator.translate(action)
-        # translator.write_action_queue(action)
-
-        # FOR TEST
-        action = '>p1 move 1\n'
-        self.translator.write_action_queue(action)
-        action = '>p2 move 1\n'
-        self.translator.write_action_queue(action)
+        
+        elif '|win|' in line:
+            self.game_over(line[len('|win|'):])
+        
+        elif '|tie' in line:
+            self.game_over(tie=True)
             
+
     def run(self):
         while True:
             if not self.data_q.empty():
                 line = self.data_q.get()
                 print(line)
                 self.ingest(line)
-
-
-
+                
