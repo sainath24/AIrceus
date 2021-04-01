@@ -78,9 +78,9 @@ class PPO:
 
                 values, action_log_probs, entropy = self.evaluate(states_batch, actions_batch)
 
-                ratio = torch.exp(action_log_probs - old_action_log_probs_batch)
-                surr1 = ratio * adv_targ
-                surr2 = torch.clamp(ratio, 1 - self.clip_param, 1 + self.clip_param) * adv_targ
+                ratio = torch.exp(action_log_probs - old_action_log_probs_batch.detach())
+                surr1 = ratio * adv_targ.detach()
+                surr2 = torch.clamp(ratio, 1 - self.clip_param, 1 + self.clip_param) * adv_targ.detach()
 
                 policy_loss = -torch.min(surr1, surr2).mean() 
 
