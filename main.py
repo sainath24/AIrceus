@@ -28,4 +28,5 @@ for episode in range(config['episodes']):
 
     batsim.start(threaded=True)
     ingestor.start(threaded=True) # WILL NOT PASS HERE UNTIL INGESTOR ENDS
+    batsim.kill()
 
