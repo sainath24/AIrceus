@@ -88,10 +88,18 @@ def update_active_moves(game, pos, moves_json, player_identifier):
 
 def get_pokemon_data(name):
     ''' get pokemon data from pokedex using name'''
-    command = ['node', './get_pokemon_data.js', name + '\n']
-    proc = subprocess.Popen(command, shell = True, stdin=subprocess.PIPE, stdout= subprocess.PIPE, stderr= subprocess.PIPE, universal_newlines=True)
-    out, err = proc.communicate()
-    out_dict = json.loads(out)
+    while True:
+        if len(name) == 1:
+            break
+        command = ['node', './get_pokemon_data.js', name + '\n']
+        proc = subprocess.Popen(command, shell = True, stdin=subprocess.PIPE, stdout= subprocess.PIPE, stderr= subprocess.PIPE, universal_newlines=True)
+        out, err = proc.communicate()
+        try:
+            out_dict = json.loads(out)
+            break
+        except Exception as e:
+            name = name[:-1]
+
     return out_dict
 
 def get_health_status(pokemon_json):
