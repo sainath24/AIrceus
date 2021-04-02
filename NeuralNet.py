@@ -7,7 +7,7 @@ class NeuralNet(nn.Module):
         self.actor = nn.Sequential(
             nn.Linear(state_size, hidden_size), nn.Tanh(),
             nn.Linear(hidden_size, hidden_size), nn.Tanh(),
-            nn.Linear(hidden_size, action_size), nn.Softmax(dim = -1)
+            nn.Linear(hidden_size, action_size)
         )
 
         self.critic = nn.Sequential(

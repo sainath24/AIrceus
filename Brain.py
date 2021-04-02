@@ -45,7 +45,13 @@ class Brain:
         # print('\nSTATE: ', state)
         actor_values, critic_values = self.algo.a2c(state)
 
-        # TODO: use invalid_actions to mask invalid actions and choose
+        # INVALID ACTION MASKING
+        for i in range(len(invalid_actions)):
+            if invalid_actions[i] == 1.0: # ACTION IS INVALID
+                actor_values[i] = -1e8
+        
+        actor_values = f.softmax(actor_values, dim = -1)
+
         actor_probs = Categorical(actor_values)
         action = actor_probs.sample()
 
