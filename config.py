@@ -1,6 +1,7 @@
 config = {
-    'model': '/model.pth',
-    'optim': '/optim.pth',
+    'model': 'model.pth',
+    'optim': 'optim.pth',
+    'log': 'game.log',
     'optim_lr': 1e-4,
     'episodes': 5,
     'state_size': 25,

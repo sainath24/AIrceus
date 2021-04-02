@@ -1,8 +1,16 @@
+from re import L
 import threading
 import json
 import ingestor_tools
 from queue import Queue
 from config import config
+
+from tqdm import tqdm
+from config import config
+
+import logging
+# logging.basicConfig(filename=config['log'], level=logging.DEBUG)
+
 
 class Ingestor:
     def __init__(self, data_queue, translator, brain, game) -> None:
@@ -14,7 +22,13 @@ class Ingestor:
         self.step = 0
         self.game_end = False
         self.batch_size = config['batch_size']
-    
+        self.progress_bar = tqdm(total=self.batch_size, desc='STEPS TO UPDATE')
+
+    def reset_progress_bar(self):
+        # self.progress_bar.close()
+        # self.progress_bar = tqdm(total = self.batch_size)
+        self.progress_bar.reset()
+        
     def set_queue(self, data_queue):
         self.data_q = data_queue
 
@@ -25,6 +39,18 @@ class Ingestor:
             ingestor_thread.join() # USED TO EXIT GAME WHEN OVER
         else:
             self.run()
+
+    def increment_step(self):
+        if (self.step + 1) % self.batch_size == 0: # RESET STEP TO 1
+            self.step = 1
+            self.progress_bar.update(1)
+            self.reset_progress_bar()
+            self.progress_bar.update(1)
+        else:
+            self.step += 1
+            self.progress_bar.update(1)
+            
+
 
     def pokemon_changes(self,json): 
         active_moves = None
@@ -63,11 +89,10 @@ class Ingestor:
         switch_pokemon = 2
         action = '>' + player_identifier + ' switch ' + str(switch_pokemon) + '\n'
         self.translator.write_action_queue(action)
+
+        self.increment_step()
         
-        if (self.step + 1) % self.batch_size == 0: # RESET STEP TO 1
-            self.step = 1
-        else:
-            self.step += 1
+        
 
     def take_decision(self):
         # TODO: USE BRAIN TO DECIDE AND TRANSLATOR TO TRANSLATE
@@ -80,10 +105,8 @@ class Ingestor:
         self.translator.write_action_queue(action)
         action = '>p2 move 1\n'
         self.translator.write_action_queue(action)
-        if (self.step + 1) % self.batch_size == 0: # RESET STEP TO 1
-            self.step = 1
-        else:
-            self.step += 1
+        
+        self.increment_step()
     
     def game_over(self, player_identifier = None, tie = False):
         if tie: # GAME IS A TIE
@@ -121,6 +144,7 @@ class Ingestor:
             self.game_over(tie=True)
 
         elif '|error' in line:
+            logging.error(line)
             self.game_over(tie=True) # TODO: TEMP HANDLING ERROR
             
 
@@ -128,8 +152,9 @@ class Ingestor:
         while self.game_end == False:
             if not self.data_q.empty():
                 line = self.data_q.get()
-                print(line)
+                # print(line)
+                logging.info(line)
                 self.ingest(line)
         self.game_end = False
-        print('\n INGESTOR GAME OVER \n')
+        # print('\n INGESTOR GAME OVER \n')
                 
