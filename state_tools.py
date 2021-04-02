@@ -10,7 +10,10 @@ def get_field_score(base):
     ''' calculate score for this pokemon with current #TODO:weather and base conditions'''
     score = 0
     for i in base:
-        score -=1
+        if i in ['spikes', 'stealthrock', 'toxicspikes']:
+            score -=1
+        else:
+            score += 1 
     
     score = normalize_score(score, minimum= -2.0, maximum= 2.0)
     score = torch.clamp(torch.tensor([score], dtype = torch.float), 0.0, 1.0)
@@ -26,7 +29,7 @@ def get_stats_score(stats):
 
 def get_move_stats_state(move):
     ''' return move stats state'''
-    temp_dict = {'atk:': 0.0, 'def': 0.0, 'spa': 0.0, 'spd': 0.0, 'spe': 0.0}
+    temp_dict = {'atk': 0.0, 'def': 0.0, 'spa': 0.0, 'spd': 0.0, 'spe': 0.0}
     user_stat_changes = []
     enemy_stat_changes = []
     for k,v in move.user_stat_changes.items():
@@ -34,7 +37,7 @@ def get_move_stats_state(move):
     for k,v in temp_dict.items():
         user_stat_changes.append(normalize_score(v, minimum= -3.0, maximum= 3.0))
     
-    temp_dict = {'atk:': 0.0, 'def': 0.0, 'spa': 0.0, 'spd': 0.0, 'spe': 0.0}
+    temp_dict = {'atk': 0.0, 'def': 0.0, 'spa': 0.0, 'spd': 0.0, 'spe': 0.0}
     for k,v in move.enemy_stat_changes.items():
         temp_dict[k] = v
     for k,v in temp_dict.items():
@@ -57,6 +60,7 @@ def get_status_score(status):
     score = normalize_score(score, -4.0, 4.0)
     score = torch.clamp(torch.tensor([score], dtype=torch.float), 0.0, 1.0)
 
+
     return score
 
 def get_pokemon_specific_state(pokemon, base):
@@ -74,7 +78,6 @@ def get_pokemon_type_adv(pokemon, enemy_pokemon):
     '''compare pokemon type with enemy pokemon type'''
     pokemon_type_adv = []
     if enemy_pokemon.hp == 0.0: # ENEMY HAS FAINTED
-        pokemon_type_adv = torch.tensor([2.0], dtype = torch.float) ## ADD 2.0 if ENEMY FAINTED TO HELP INC AVG
         return None
     
     ## POKEMON TYPE ADVANTAGE
@@ -85,11 +88,9 @@ def get_pokemon_type_adv(pokemon, enemy_pokemon):
     avg = torch.tensor(pokemon_type_adv, dtype=torch.float).mean().item()
     pokemon_type_adv = torch.tensor(normalize_score(avg, -2.0, 2.0), dtype= torch.float)
     pokemon_type_adv = torch.clamp(pokemon_type_adv, 0.0, 1.0).item()
-
     return pokemon_type_adv
 
 def get_pokemon_move_adv(move, enemy_pokemon_list):
-    ''' calculate move adv score with respect to all enemy pokemon'''
     move_adv = []
     for pokemon in enemy_pokemon_list:
         if pokemon.hp != 0.0:
@@ -102,6 +103,7 @@ def get_pokemon_move_adv(move, enemy_pokemon_list):
     avg = torch.tensor(move_adv, dtype=torch.float).mean().item()
     move_adv = torch.tensor([normalize_score(avg, -2.0, 2.0)], dtype=torch.float)
     move_adv = torch.clamp(move_adv, 0.0, 1.0)
+
 
     return move_adv
 
@@ -140,6 +142,7 @@ def get_pokemon_state(pokemon, enemy_pokemon_list, base, weather = None):
         move_state = torch.cat((move_state, get_pokemon_move_adv(move, enemy_pokemon_list)))
 
     state = torch.cat((pokemon_state, type_adv, move_state))
+
     
     return state
 
@@ -162,6 +165,7 @@ def get_state(game):
         p2_state = torch.cat((p2_state, get_pokemon_state(pokemon, p1_pokemon, p2_base)))
 
     state = torch.cat((p1_state, p2_state))
+
     
     return state
 
