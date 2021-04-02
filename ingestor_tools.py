@@ -81,8 +81,8 @@ def update_active_moves(game, pos, moves_json, player_identifier):
                 pass
             try:
                 game.p1_pokemon[pos].moves[i].disabled = moves_json[i]['disabled']
-            except Exception as e: # NO DIABLED IN JSON
-                pass
+            except Exception as e: # NO DISABLED IN JSON
+                game.p1_pokemon[pos].moves[i].disabled = True
     
     elif player_identifier == 'p2':
         for i in range(len(moves_json)):
@@ -93,7 +93,7 @@ def update_active_moves(game, pos, moves_json, player_identifier):
             try:
                 game.p2_pokemon[pos].moves[i].disabled = moves_json[i]['disabled']
             except Exception as e: # NO DIABLED IN JSON
-                pass
+                game.p2_pokemon[pos].moves[i].disabled = True
 
 def get_pokemon_data(name):
     ''' get pokemon data from pokedex using name'''
