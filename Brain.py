@@ -5,6 +5,7 @@ import torch.optim as optim
 from torch.distributions import Categorical
 from PPO import PPO
 from config import config
+import state_tools
 
 
 class Brain:
@@ -40,7 +41,8 @@ class Brain:
 
     def get_action(self, game, step):
         state, invalid_actions = self.create_state(game)
-        # state = torch.tensor(state, dtype=torch.float, device=self.device) RETURN STATE AS TENSOR
+        # print('\nSTATE LENGTH: ', state.size())
+        # print('\nSTATE: ', state)
         actor_values, critic_values = self.algo.a2c(state)
 
         # TODO: use invalid_actions to mask invalid actions and choose
@@ -56,11 +58,11 @@ class Brain:
 
         return action.item()
 
-    
     def create_state(self, game):
-        state = torch.zeros(25, device = self.device) # TEMP STATE
+        state = state_tools.get_state(game)
+        invalid_actions = state_tools.get_invalid_actions(game)
 
-        return state, None
+        return state, invalid_actions
 
     def update(self, step):
         if (step + 1) % self.batch_size == 0: # TIME TO UPDATE
