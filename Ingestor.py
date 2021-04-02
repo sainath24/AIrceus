@@ -25,8 +25,6 @@ class Ingestor:
         self.progress_bar = tqdm(total=self.batch_size, desc='STEPS TO UPDATE')
 
     def reset_progress_bar(self):
-        # self.progress_bar.close()
-        # self.progress_bar = tqdm(total = self.batch_size)
         self.progress_bar.reset()
         
     def set_queue(self, data_queue):
@@ -82,6 +80,24 @@ class Ingestor:
         weather = weather.split('|')[0]
         self.game.set_weather(weather)
 
+    def side_condition(self, condition, start = True):
+        condition = condition.split('|')
+        side = condition[0]
+        player_identifier = side.split(':')[0]
+
+        condition = condition[1]
+        condition = condition.split(':')[1][1:].lower()
+
+        if start and player_identifier == 'p1':
+            self.game.add_p1_base(condition)
+        elif not start and player_identifier == 'p1':
+            self.game.remove_p1_base(condition)
+        elif start and player_identifier == 'p2':
+            self.game.add_p2_base(condition)
+        elif not start and player_identifier == 'p2':
+            self.game.remove_p2_base(condition)
+
+
     def choose_switch(self, player_identifier):
         # TODO: USE BRAIN TO CHOOSE SWITCH
         action = self.brain.get_action(self.game, self.step)
@@ -112,7 +128,10 @@ class Ingestor:
         if tie: # GAME IS A TIE
             self.game.set_tie(tie)
         else:
-            self.game.set_win(player_identifier)
+            if player_identifier == 'agent': # TODO: LOOK FOR PROPER NAME
+                self.game.set_win('p1')
+            else:
+                self.game.set_win('p2')
         
         ## CALL BRAIN GAME OVER AND PASS STEP
         self.brain.game_over(self.game, self.step)
@@ -136,6 +155,12 @@ class Ingestor:
         
         elif '|-weather|' in line: # weather changes
             self.weather_change(line[len('|-weather|'):])
+        
+        elif '|-sidestart|' in line: # a condition on a player's side has started
+            self.side_condition(line[len('|-sidestart|'):], start=True)
+        
+        elif '|-sideend|' in line: # a condition on a player's side has ended
+            self.side_condition(line[len('|-sideend|'):], start= False)
         
         elif '|win|' in line:
             self.game_over(line[len('|win|'):])
