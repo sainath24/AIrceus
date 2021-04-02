@@ -1,4 +1,3 @@
-from re import L
 import threading
 import json
 import ingestor_tools
@@ -86,7 +85,13 @@ class Ingestor:
         player_identifier = side.split(':')[0]
 
         condition = condition[1]
-        condition = condition.split(':')[1][1:].lower()
+        try:
+            condition = condition.split(':')[1][1:].lower()
+        except Exception as e:
+            pass
+
+        condition = condition.replace(" ","").lower()
+        condition = condition.encode("ascii", "ignore").decode()
 
         if start and player_identifier == 'p1':
             self.game.add_p1_base(condition)
