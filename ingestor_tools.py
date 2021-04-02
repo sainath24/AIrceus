@@ -2,20 +2,29 @@ from Move import Move
 from Pokemon import Pokemon
 import subprocess
 import json
+import logging
+from config import config
+# logging.basicConfig(filename= config['log'], level=logging.DEBUG)
 
-def get_move_data(id):
+def get_move_data(move_id):
     ''' get rest of the move data from moves.js'''
+    removed_unicode = False
     while True:
-        if len(id) == 1:
+        if len(move_id) == 1:
             break
-        command = ['node', './get_move_data.js', id +'\n']
+        command = ['node', './get_move_data.js', move_id +'\n']
         proc = subprocess.Popen(command, shell = True, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         out, err = proc.communicate()
         try:
             out_dict = json.loads(out)
             break
         except Exception as e:
-            id = id[:-1]
+            logging.warning('UABLE TO FIND MOVE ' + str(move_id))
+            if removed_unicode == False: # TRY REMOVING UNICODE CHARACTERS
+                move_id = move_id.encode("ascii", "ignore").decode()
+                removed_unicode = True
+            else:
+                move_id = move_id[:-1]
 
     if out_dict['accuracy'] == True:
         out_dict['accuracy'] = 100
@@ -88,6 +97,7 @@ def update_active_moves(game, pos, moves_json, player_identifier):
 
 def get_pokemon_data(name):
     ''' get pokemon data from pokedex using name'''
+    removed_unicode = False
     while True:
         if len(name) == 1:
             break
@@ -98,7 +108,12 @@ def get_pokemon_data(name):
             out_dict = json.loads(out)
             break
         except Exception as e:
-            name = name[:-1]
+            logging.warning('UNABLE TO FIND POKEMON:  ' + str(name))
+            if removed_unicode == False: # TRY REMOVING UNICODE CHARACTERS
+                name = name.encode("ascii", "ignore").decode()
+                removed_unicode = True
+            else:
+                name = name[:-1]
 
     return out_dict
 
