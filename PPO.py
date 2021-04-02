@@ -5,6 +5,7 @@ import torch.nn as nn
 from NeuralNet import NeuralNet
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 
+import os
 from config import config
 
 class PPO:
@@ -17,6 +18,9 @@ class PPO:
         self.hidden_size = hidden_size
         self.clip_param = clip_param
         self.device = device
+
+        self.model_path = config['model']
+        self.optim_path = config['optim']
 
 
         self.states = torch.zeros(self.batch_size, self.state_size, device=self.device)
@@ -35,6 +39,8 @@ class PPO:
         self.gamma = config['gamma']
         
         self.a2c.to(self.device)
+        
+        self.load()
 
     def insert_state(self, state, step):
         self.states[step].copy_(state)
@@ -52,7 +58,18 @@ class PPO:
         self.log_prob_actions[step].copy_(prob)
 
     def insert_done(self, done, step):
-        self.dones[step].copy_(done) 
+        self.dones[step].copy_(done)
+    
+    def load(self):
+        if os.path.isfile(self.model_path):
+            self.a2c.load_state_dict(torch.load(self.model_path, map_location=self.device))
+
+        if os.path.isfile(self.optim_path):
+            self.optimiser.load_state_dict(torch.load(self.optim_path, map_location=self.device))
+    
+    def checkpoint(self):
+        torch.save(self.a2c.state_dict(), self.model_path)
+        torch.save(self.optimiser.state_dict(), self.optim_path)
 
     def calculate_returns(self):
         # TODO: IMPLEMENT GAE
@@ -100,6 +117,7 @@ class PPO:
         total_value_loss /= num_updates
 
         self.post_update()
+        self.checkpoint()
 
         return total_policy_loss, total_value_loss
 
