@@ -4,6 +4,7 @@ import torch.optim as optim
 import torch.nn as nn
 from NeuralNet import NeuralNet
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
+import wandb
 
 import os
 from config import config
@@ -39,6 +40,8 @@ class PPO:
         self.gamma = config['gamma']
         
         self.a2c.to(self.device)
+        if config['use_wandb']:
+            wandb.watch(self.a2c)
         
         self.load()
 
