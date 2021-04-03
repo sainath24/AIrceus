@@ -150,7 +150,7 @@ class Ingestor:
         if tie: # GAME IS A TIE
             self.game.set_tie(tie)
         else:
-            if player_identifier == 'agent': # TODO: LOOK FOR PROPER NAME
+            if player_identifier[:-1] == 'agent': # TODO: LOOK FOR PROPER NAME
                 self.game.set_win('p1')
             else:
                 self.game.set_win('p2')
@@ -185,9 +185,11 @@ class Ingestor:
             self.side_condition(line[len('|-sideend|'):], start= False)
         
         elif '|win|' in line:
+            logging.info(line)
             self.game_over(line[len('|win|'):])
         
         elif '|tie' in line and '|tier' not in line:
+            logging.info(line)
             self.game_over(tie=True)
 
         elif '|error' in line:
@@ -207,7 +209,7 @@ class Ingestor:
                 line = self.data_q.get()
                 # print(line)
                 logging.info(line)
-                self.ingest(line)
+                # self.ingest(line)
         self.episodes_finished += 1
         self.game_end = False
         # print('\n INGESTOR GAME OVER \n')
