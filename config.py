@@ -14,10 +14,10 @@ config = {
     'clip_param': 0.2,
     'value_loss_coef': 1,
     'entropy_coef' : 1e-2,
-    'max_grad_norm' : 0.0, # NOT USED
+    'max_grad_norm' : 100.0,
     'gamma': 0.99,
     'trainer_update_frequency': 10, # IN EPISODES
-    'use_wandb': False
+    'use_wandb': True
     ## TODO: ADD REST OF THE CONFIG AND SET PARAMS
 }
 
