@@ -11,6 +11,7 @@ class Move:
             self.disabled = move_json['disabled']
             self.user_stat_changes = move_json['user_stat_changes'] ##
             self.enemy_stat_changes = move_json['enemy_stat_changes'] ##
+            self.trapped = False
     
     def set_current_pp(self, pp):
         self.current_pp = pp
@@ -36,5 +37,6 @@ class Move:
         move['disabled'] = self.disabled 
         move['user_stat_changes'] = self.user_stat_changes
         move['enemy_stat_changes'] = self.enemy_stat_changes
+        move['trapped'] = self.trapped
 
         return move
