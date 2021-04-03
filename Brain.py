@@ -7,6 +7,7 @@ from PPO import PPO
 from config import config
 import state_tools
 import logging
+import reward_tools
 
 
 class Brain:
@@ -34,11 +35,10 @@ class Brain:
 
         self.update(step)
 
-    def compute_rewards(self, state, step):
-        if step > 0:
-            # TODO: COMPUTE ACTUAL REWARDS
-            reward = torch.tensor(1.0, dtype=torch.float, device=self.device)
-            self.algo.insert_reward(reward, step)
+    def compute_rewards(self, state, step, game):
+        # TODO: COMPUTE ACTUAL REWARDS
+        reward = reward_tools.get_reward(state, game)
+        self.algo.insert_reward(reward, step)
         
 
     def get_action(self, game, step, must_switch = False):
@@ -62,8 +62,8 @@ class Brain:
 
         if self.train:
             self.update_memory(action, actor_probs, critic_values, state, step)
-            if (step + 1) % self.batch_size != 0:
-                self.compute_rewards(state, step-1)
+            if step > 0:
+                self.compute_rewards(state, step-1, game)
                 # TODO: COMPUTE REWARDS AND APPEND AT STEP -1
         
         return action.item()
@@ -82,9 +82,10 @@ class Brain:
     def game_over(self, game, step):
         # TODO: COMPUTE LAST REWARDS AND APPEND AT STEP -1
         state, invalid_actions = self.create_state(game)
-        if self.train and (step + 1) % self.batch_size != 0:
+        # if self.train and (step + 1) % self.batch_size != 0:
+        if step>0:
             self.algo.insert_done(torch.tensor(1.0, dtype=torch.float, device=self.device), step-1)
-            self.compute_rewards(state, step -1)
+            self.compute_rewards(state, step -1, game)
 
         self.update(step)
 
