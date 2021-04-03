@@ -48,6 +48,5 @@ class Pokemon:
             if move_name == self.moves[i].name:
                 return i
         logging.warning('UNABLE TO RETURN MOVE POSITION FOR: ' + str(move_name))
-        logging.warning('MOVES DICT: ' + str([move.get_dict() for move in self.moves]
-))
+        logging.warning('POKEMON DICT: ' + str(self.get_dict()))
         return None
