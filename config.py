@@ -15,6 +15,7 @@ config = {
     'value_loss_coef': 1,
     'entropy_coef' : 1e-2,
     'max_grad_norm' : 0.0, # NOT USED
-    'gamma': 0.99
+    'gamma': 0.99,
+    'trainer_update_frequency': 5 # IN EPOCHS
     ## TODO: ADD REST OF THE CONFIG AND SET PARAMS
 }

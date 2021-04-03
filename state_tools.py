@@ -146,7 +146,7 @@ def get_pokemon_state(pokemon, enemy_pokemon_list, base, weather = None):
     
     return state
 
-def get_state(game):
+def get_state(game, player_identifier):
     '''return fully formed state from made using game'''
     p1_pokemon = game.p1_pokemon
     p2_pokemon = game.p2_pokemon
@@ -164,29 +164,46 @@ def get_state(game):
     for pokemon in p2_pokemon:
         p2_state = torch.cat((p2_state, get_pokemon_state(pokemon, p1_pokemon, p2_base)))
 
-    state = torch.cat((p1_state, p2_state))
-
+    if player_identifier == 'p1':
+        state = torch.cat((p1_state, p2_state))
+    elif player_identifier == 'p2':
+        state = torch.cat((p2_state, p1_state))
     
     return state
 
-def get_invalid_actions(game):
+def get_invalid_actions(game, player_identifier):
     ''' return listo of invalid actions comprising of invalid active moves and invalid switches'''
     invalid_moves = []
     invalid_switch = [] 
-    p1_pokemon = game.p1_pokemon
+    player_pokemon = None
+    if player_identifier == 'p1':
+        player_pokemon = game.p1_pokemon
+    elif player_identifier == 'p2':
+        player_pokemon = game.p2_pokemon
 
-    for pokemon in p1_pokemon:
+    move_trapped = False
+    for pokemon in player_pokemon:
         if pokemon.active or pokemon.hp == 0.0:
             invalid_switch.append(1.0)
-            if pokemon.active:
+            if pokemon.active: #and pokemon.hp != 0.0:
                 moves = pokemon.moves
                 for move in moves:
+                    if move.trapped and pokemon.hp != 0.0: # TRAPPED, CAN ONLY USE THIS MOVE
+                        move_trapped = True
+                    else:
+                        pass
                     if move.disabled or move.current_pp == 0:
                         invalid_moves.append(1.0)
                     else:
                         invalid_moves.append(0.0)
         else:
             invalid_switch.append(0.0)
+
+    if move_trapped: # TRAPPED, HAVE TO ONLY USE THE ONE MOVE
+        invalid_switch = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+
+    # if len(invalid_moves) == 0: # POKEMON FAINTED, HAVE TO SWITCH
+    #     invalid_moves = [1.0, 1.0, 1.0, 1.0]
     
     invalid_actions = torch.cat((torch.tensor(invalid_moves, dtype=torch.float), torch.tensor(invalid_switch, dtype=torch.float)))
 

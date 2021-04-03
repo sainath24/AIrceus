@@ -17,10 +17,10 @@ action_queue = None
 
 
 batsim = BattleSimulator(data_queue=data_queue, action_queue= action_queue)
-brain = Brain(train=True)
+# brain = Brain(train=True)
 translator = Translator(action_queue=action_queue)
 game = Game()
-ingestor = Ingestor(data_queue=data_queue, translator=translator, brain=brain, game=game)
+ingestor = Ingestor(data_queue=data_queue, translator=translator, train=True, game=game)
 
 for episode in tqdm(range(config['episodes']), desc='EPISODE'):
     # print('\nEPISODE: ', episode, '\n')

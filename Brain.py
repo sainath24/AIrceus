@@ -6,10 +6,12 @@ from torch.distributions import Categorical
 from PPO import PPO
 from config import config
 import state_tools
+import logging
 
 
 class Brain:
-    def __init__(self, train = True) -> None:
+    def __init__(self, player_identifier, train = True) -> None:
+        self.player_identifier = player_identifier
         self.train = train 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.batch_size = config['batch_size']
@@ -39,34 +41,37 @@ class Brain:
             self.algo.insert_reward(reward, step)
         
 
-    def get_action(self, game, step):
+    def get_action(self, game, step, must_switch = False):
         state, invalid_actions = self.create_state(game)
         # print('\nSTATE LENGTH: ', state.size())
         # print('\nSTATE: ', state)
         actor_values, critic_values = self.algo.a2c(state)
+        # logging.debug('ACTION PROBS BEFORE MASK: ' + str(self.player_identifier) + ' ' + str(actor_values))
+        
+        # logging.debug('INVALID ACTIONS MASK: ' + str(self.player_identifier) + ' ' + str(invalid_actions))
 
         # INVALID ACTION MASKING
         for i in range(len(invalid_actions)):
-            if invalid_actions[i] == 1.0: # ACTION IS INVALID
+            if invalid_actions[i] == 1.0 or (must_switch and i < 4): # ACTION IS INVALID
                 actor_values[i] = -1e8
         
         actor_values = f.softmax(actor_values, dim = -1)
+        # logging.debug('ACTION PROBS AFTER MASK: ' + str(self.player_identifier) + ' ' + str(actor_values))
 
         actor_probs = Categorical(actor_values)
         action = actor_probs.sample()
 
         if self.train:
             self.update_memory(action, actor_probs, critic_values, state, step)
-
-        # TODO: COMPUTE REWARDS AND APPEND AT STEP -1
-        if (step + 1) % self.batch_size != 0:
-            self.compute_rewards(state, step-1)
-
+            if (step + 1) % self.batch_size != 0:
+                self.compute_rewards(state, step-1)
+                # TODO: COMPUTE REWARDS AND APPEND AT STEP -1
+        
         return action.item()
 
     def create_state(self, game):
-        state = state_tools.get_state(game)
-        invalid_actions = state_tools.get_invalid_actions(game)
+        state = state_tools.get_state(game, self.player_identifier)
+        invalid_actions = state_tools.get_invalid_actions(game, self.player_identifier)
 
         return state, invalid_actions
 
@@ -78,7 +83,7 @@ class Brain:
     def game_over(self, game, step):
         # TODO: COMPUTE LAST REWARDS AND APPEND AT STEP -1
         state, invalid_actions = self.create_state(game)
-        if (step + 1) % self.batch_size != 0:
+        if self.train and (step + 1) % self.batch_size != 0:
             self.algo.insert_done(torch.tensor(1.0, dtype=torch.float, device=self.device), step-1)
             self.compute_rewards(state, step -1)
 
