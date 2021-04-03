@@ -1,3 +1,4 @@
+import logging
 class Game:
     def __init__(self) -> None:
         self.weather = ''
@@ -24,12 +25,18 @@ class Game:
     def add_p1_base(self, item):
         self.p1_base.append(item)
     def remove_p1_base(self, item):
-        self.p1_base.remove(item)
+        try:
+            self.p1_base.remove(item)
+        except Exception as e:
+            logging.warning('UNABLE TO FIND BASE CONDITION in p1_base: ' + str(item))
 
     def add_p2_base(self, item):
         self.p2_base.append(item)
     def remove_p2_base(self, item):
-        self.p2_base.remove(item)
+        try:
+            self.p2_base.remove(item)
+        except Exception as e: # CONDITION NOT FOUND
+            logging.warning('UNABLE TO FIND BASE CONDITION in p2_base: ' + str(item))
     
     def set_win(self, player):
         self.win = player
