@@ -28,7 +28,7 @@ class Game:
         try:
             self.p1_base.remove(item)
         except Exception as e:
-            logging.warning('UNABLE TO FIND BASE CONDITION' + str(item) + 'in p1_base: ' + str(self.p1_base))
+            logging.warning('UNABLE TO FIND BASE CONDITION ' + str(item) + ' in p1_base: ' + str(self.p1_base))
 
     def add_p2_base(self, item):
         self.p2_base.append(item)
@@ -36,7 +36,7 @@ class Game:
         try:
             self.p2_base.remove(item)
         except Exception as e: # CONDITION NOT FOUND
-            logging.warning('UNABLE TO FIND BASE CONDITION' + str(item) + 'in p2_base: ' + str(self.p2_base))
+            logging.warning('UNABLE TO FIND BASE CONDITION ' + str(item) + ' in p2_base: ' + str(self.p2_base))
     
     def set_win(self, player):
         self.win = player

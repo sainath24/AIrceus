@@ -40,5 +40,6 @@ for episode in tqdm(range(config['episodes']), desc='EPISODE'):
     batsim.start(threaded=True)
     ingestor.start(threaded=True) # WILL NOT PASS HERE UNTIL INGESTOR ENDS
     batsim.kill()
-    wandb.log({'episode': episode})
+    if config['use_wandb']:
+        wandb.log({'episode': episode})
 

@@ -95,7 +95,8 @@ class Ingestor:
 
     def weather_change(self, weather):
         weather = weather.split('|')[0]
-        self.game.set_weather(weather[:-1])
+        weather = weather.replace('\n','')
+        self.game.set_weather(weather)
 
     def side_condition(self, condition, start = True):
         condition = condition.split('|')
@@ -108,17 +109,18 @@ class Ingestor:
         except Exception as e:
             pass
 
+        condition = condition.replace('\n','')
         condition = condition.replace(" ","").lower()
         condition = condition.encode("ascii", "ignore").decode()
 
         if start and player_identifier == 'p1':
-            self.game.add_p1_base(condition[:-1])
+            self.game.add_p1_base(condition)
         elif not start and player_identifier == 'p1':
-            self.game.remove_p1_base(condition[:-1])
+            self.game.remove_p1_base(condition)
         elif start and player_identifier == 'p2':
-            self.game.add_p2_base(condition[:-1])
+            self.game.add_p2_base(condition)
         elif not start and player_identifier == 'p2':
-            self.game.remove_p2_base(condition[:-1])
+            self.game.remove_p2_base(condition)
 
 
     def choose_switch(self, player_identifier):
@@ -151,7 +153,7 @@ class Ingestor:
         if tie: # GAME IS A TIE
             self.game.set_tie(tie)
         else:
-            if player_identifier[:-1] == 'agent': # TODO: LOOK FOR PROPER NAME
+            if player_identifier.replace('\n','') == 'agent': # TODO: LOOK FOR PROPER NAME
                 self.game.set_win('p1')
             else:
                 self.game.set_win('p2')
@@ -204,7 +206,7 @@ class Ingestor:
     def run(self):
         if self.train and self.episodes_finished % self.trainer_update_frequency == 0: # UPDATE TRAINER WEIGHTS
             self.update_trainer_weights()
-            logging.info('TRAINER WEIGHTS AFTER EPISODE: ' + str(self.episodes_finished))
+            logging.info('TRAINER WEIGHTS UPDATED AFTER EPISODE: ' + str(self.episodes_finished))
 
         while self.game_end == False:
             if not self.data_q.empty():
