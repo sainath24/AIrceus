@@ -48,6 +48,7 @@ class Brain:
         state, invalid_actions = self.create_state(game)
         # print('\nSTATE LENGTH: ', state.size())
         # print('\nSTATE: ', state)
+        state = state.to(self.device)
         actor_values, critic_values = self.algo.a2c(state)
         # logging.debug('ACTION PROBS BEFORE MASK: ' + str(self.player_identifier) + ' ' + str(actor_values))
         

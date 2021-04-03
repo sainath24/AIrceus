@@ -95,7 +95,7 @@ class Ingestor:
 
     def weather_change(self, weather):
         weather = weather.split('|')[0]
-        self.game.set_weather(weather)
+        self.game.set_weather(weather[:-1])
 
     def side_condition(self, condition, start = True):
         condition = condition.split('|')
@@ -112,13 +112,13 @@ class Ingestor:
         condition = condition.encode("ascii", "ignore").decode()
 
         if start and player_identifier == 'p1':
-            self.game.add_p1_base(condition)
+            self.game.add_p1_base(condition[:-1])
         elif not start and player_identifier == 'p1':
-            self.game.remove_p1_base(condition)
+            self.game.remove_p1_base(condition[:-1])
         elif start and player_identifier == 'p2':
-            self.game.add_p2_base(condition)
+            self.game.add_p2_base(condition[:-1])
         elif not start and player_identifier == 'p2':
-            self.game.remove_p2_base(condition)
+            self.game.remove_p2_base(condition[:-1])
 
 
     def choose_switch(self, player_identifier):

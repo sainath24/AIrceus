@@ -2,6 +2,7 @@ import torch
 from torch.distributions.categorical import Categorical
 import torch.optim as optim
 import torch.nn as nn
+import torch.nn.functional as f
 from NeuralNet import NeuralNet
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 import wandb
@@ -148,6 +149,8 @@ class PPO:
 
     def evaluate(self, states_batch, actions_batch):
         actor_output, critic_output = self.a2c(states_batch)
+        
+        actor_output = f.softmax(actor_output, dim = -1)
 
         actor_probs = Categorical(actor_output)
         action_log_probs = actor_probs.log_prob(actions_batch)
