@@ -62,6 +62,7 @@ class Ingestor:
 
 
     def pokemon_changes(self,json): 
+        logging.info(str(json))
         active_moves = None
         maybe_trapped = False
         player_identifier = json['side']['id'] # p1 or p2
@@ -208,8 +209,8 @@ class Ingestor:
             if not self.data_q.empty():
                 line = self.data_q.get()
                 # print(line)
-                logging.info(line)
-                # self.ingest(line)
+                # logging.info(line)
+                self.ingest(line)
         self.episodes_finished += 1
         self.game_end = False
         # print('\n INGESTOR GAME OVER \n')

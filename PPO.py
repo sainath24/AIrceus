@@ -87,11 +87,10 @@ class PPO:
 
         data = self.data_generator(advantages)
 
+        total_value_loss = 0.0
+        total_policy_loss = 0.0
+
         for epoch in range(self.epochs):
-
-            total_value_loss = 0.0
-            total_policy_loss = 0.0
-
             for sample in data:
                 states_batch, actions_batch, values_batch, rewards_batch, \
                     dones_batch, old_action_log_probs_batch, adv_targ = sample
