@@ -3,7 +3,7 @@ config = {
     'optim': 'optim.pth',
     'log': 'game.log',
     'optim_lr': 1e-4,
-    'episodes': 50,
+    'episodes': 1000,
     'state_size': 840,
     'action_size': 10,
     'hidden_size':128,
