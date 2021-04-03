@@ -8,6 +8,7 @@ from config import config
 import state_tools
 import logging
 import reward_tools
+import wandb
 
 
 class Brain:
@@ -38,6 +39,8 @@ class Brain:
     def compute_rewards(self, state, step, game):
         # TODO: COMPUTE ACTUAL REWARDS
         reward = reward_tools.get_reward(state, game)
+        if config['use_wandb']:
+            wandb.log({'rewards': reward})
         self.algo.insert_reward(reward, step)
         
 
@@ -77,6 +80,8 @@ class Brain:
     def update(self, step):
         if (step + 1) % self.batch_size == 0: # TIME TO UPDATE
             policy_loss, value_loss = self.algo.update()
+            if config['use_wandb']:
+                wandb.log({'policy_loss': policy_loss, 'value_loss': value_loss})
             # TODO: wandb log these
 
     def game_over(self, game, step):

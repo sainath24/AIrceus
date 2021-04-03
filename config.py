@@ -16,6 +16,7 @@ config = {
     'entropy_coef' : 1e-2,
     'max_grad_norm' : 0.0, # NOT USED
     'gamma': 0.99,
-    'trainer_update_frequency': 5 # IN EPOCHS
+    'trainer_update_frequency': 5, # IN EPOCHS
+    'use_wandb': True
     ## TODO: ADD REST OF THE CONFIG AND SET PARAMS
 }

@@ -9,6 +9,10 @@ from config import config
 
 from tqdm import tqdm
 
+import wandb
+if config['use_wandb']:
+    wandb.init(project = 'AIrceus_V2.0')
+
 import logging
 logging.basicConfig(filename = config['log'], level=logging.DEBUG)
 
@@ -36,4 +40,5 @@ for episode in tqdm(range(config['episodes']), desc='EPISODE'):
     batsim.start(threaded=True)
     ingestor.start(threaded=True) # WILL NOT PASS HERE UNTIL INGESTOR ENDS
     batsim.kill()
+    wandb.log({'episode': episode})
 
