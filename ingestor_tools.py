@@ -25,6 +25,8 @@ def get_move_data(move_id):
                 removed_unicode = True
             else:
                 move_id = move_id[:-1]
+    
+    out_dict['name'] = move_id
 
     if out_dict['accuracy'] == True:
         out_dict['accuracy'] = 100
@@ -55,7 +57,8 @@ def create_move(move_json):
     '''Update single move_json to a proper move dict to create Move object'''
     move_name = ''.join(filter(str.isalpha, move_json['id']))
     move_dict = get_move_data(move_name)
-    move_json['name'] = move_dict['name']
+    # move_json['name'] = move_dict['name']
+    move_json['name'] = move_name
     move_json['type'] = move_dict['type']
     move_json['accuracy'] = move_dict['accuracy']
     move_json['basePower'] = move_dict['basePower']
@@ -68,32 +71,63 @@ def get_active_moves(moves_json):
     ''' use moves_json and return list of 4 Move objects'''
     moves = []
     for move_json in moves_json:
-        moves.append(create_move(move_json))
+        move = create_move(move_json)
+        moves.append(move)
     return moves
 
-def update_active_moves(game, pos, moves_json, player_identifier):
+def update_active_moves(game, pos, moves_json, player_identifier, maybe_trapped):
     ''' update already existing moves '''
+    updated_moves = []
     if player_identifier == 'p1':
-        for i in range(len(moves_json)):
-            try:
-                game.p1_pokemon[pos].moves[i].pp = moves_json[i]['pp']
-            except Exception as e: # NO PP IN JSON
-                pass
-            try:
-                game.p1_pokemon[pos].moves[i].disabled = moves_json[i]['disabled']
-            except Exception as e: # NO DISABLED IN JSON
+        for move_json in moves_json:
+            move_name = ''.join(filter(str.isalpha, move_json['id']))
+            position = game.p1_pokemon[pos].get_move_position(move_name)
+            if position != None:
+                updated_moves.append(position)
+                try:
+                    game.p1_pokemon[pos].moves[position].pp = move_json['pp']
+                except Exception as e: # NO PP IN JSON
+                    pass
+                try:
+                    game.p1_pokemon[pos].moves[position].disabled = move_json['disabled']
+                except Exception as e: # NO DISABLED IN JSON
+                    game.p1_pokemon[pos].moves[position].disabled = False
+                try:
+                    game.p1_pokemon[pos].moves[position].trapped = move_json['trapped']
+                except Exception as e: # NOT TRAPPED
+                    game.p1_pokemon[pos].moves[position].trapped = False
+            
+        for i in range(4): # SET DIABLED MOVES IF ANY, ALL NON UPDATED MOVES ARE DISABLED
+            if i not in updated_moves:
                 game.p1_pokemon[pos].moves[i].disabled = True
-    
+            if maybe_trapped:
+                game.p1_pokemon[pos].moves[i].trapped = True
+
     elif player_identifier == 'p2':
-        for i in range(len(moves_json)):
-            try:
-                game.p2_pokemon[pos].moves[i].pp = moves_json[i]['pp']
-            except Exception as e: # NO PP IN JSON
-                pass
-            try:
-                game.p2_pokemon[pos].moves[i].disabled = moves_json[i]['disabled']
-            except Exception as e: # NO DIABLED IN JSON
+        updated_moves = []
+        for move_json in moves_json:
+            move_name = ''.join(filter(str.isalpha, move_json['id']))
+            position = game.p2_pokemon[pos].get_move_position(move_name)
+            if position != None:
+                updated_moves.append(position)
+                try:
+                    game.p2_pokemon[pos].moves[position].pp = move_json['pp']
+                except Exception as e: # NO PP IN JSON
+                    pass
+                try:
+                    game.p2_pokemon[pos].moves[position].disabled = move_json['disabled']
+                except Exception as e: # NO DISABLED IN JSON
+                    game.p2_pokemon[pos].moves[position].disabled = False
+                try:
+                    game.p2_pokemon[pos].moves[position].trapped = move_json['trapped']
+                except Exception as e: # NOT TRAPPED
+                    game.p2_pokemon[pos].moves[position].trapped = False
+            
+        for i in range(4): # SET DIABLED MOVES IF ANY, ALL NON UPDATED MOVES ARE DISABLED
+            if i not in updated_moves:
                 game.p2_pokemon[pos].moves[i].disabled = True
+            if maybe_trapped:
+                game.p1_pokemon[pos].moves[i].trapped = True
 
 def get_pokemon_data(name):
     ''' get pokemon data from pokedex using name'''
@@ -153,8 +187,9 @@ def create_pokemon(pokemon_json):
             move_dict['disabled'] = False
             moves.append(Move(move_dict))
         pokemon_json['moves'] = moves
-
-    return Pokemon(pokemon_json)
+        
+    p = Pokemon(pokemon_json)
+    return p
 
 def get_pokemon(pokemons_json):
     ''' use pokemon_json and return list of 6 Pokemon objects'''
@@ -164,7 +199,11 @@ def get_pokemon(pokemons_json):
 
     return pokemons
 
-def set_active_pokemon_moves(pokemon, active_moves):
+def set_active_pokemon_moves(pokemon, active_moves, maybe_trapped):
+    if maybe_trapped:
+        for i in range(len(active_moves)):
+            active_moves[i].trapped = True
+        
     pokemon.set_moves(active_moves)
 
 def update_pokemon(game, pos, pokemon_json, player_identifier):
@@ -185,7 +224,7 @@ def update_pokemon(game, pos, pokemon_json, player_identifier):
         game.p2_pokemon[pos].stats = pokemon_json['stats']
         game.p2_pokemon[pos].item = pokemon_json['item']
 
-def update_pokemons_data(game, pokemons_json, active_moves, player_identifier):
+def update_pokemons_data(game, pokemons_json, active_moves, player_identifier, maybe_trapped):
     '''update pokemon data for a team with pokemons_json'''
     for pokemon_json in pokemons_json:
         position = game.get_pokemon_pos(pokemon_json['details'], player_identifier)
@@ -194,10 +233,10 @@ def update_pokemons_data(game, pokemons_json, active_moves, player_identifier):
         if active_moves != None and player_identifier == 'p1':
             if game.p1_pokemon[position].active == True:
                 # game.p1_pokemon[position].set_moves(active_moves)
-                update_active_moves(game, position, active_moves, player_identifier)
+                update_active_moves(game, position, active_moves, player_identifier, maybe_trapped)
 
         elif active_moves != None and player_identifier == 'p2':
             if game.p2_pokemon[position].active == True:
                 # game.p2_pokemon[position].set_moves(active_moves)
-                update_active_moves(game, position, active_moves, player_identifier)
+                update_active_moves(game, position, active_moves, player_identifier, maybe_trapped)
 
