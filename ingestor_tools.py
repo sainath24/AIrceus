@@ -4,6 +4,7 @@ import subprocess
 import json
 import logging
 from config import config
+from config import default_move
 # logging.basicConfig(filename= config['log'], level=logging.DEBUG)
 
 def get_move_data(move_id):
@@ -75,6 +76,9 @@ def get_active_moves(moves_json):
     for move_json in moves_json:
         move = create_move(move_json)
         moves.append(move)
+    for i in range(len(moves), 4):
+        moves.append(Move(default_move))
+
     return moves
 
 def update_active_moves(game, pos, moves_json, player_identifier, maybe_trapped):
@@ -95,6 +99,13 @@ def update_active_moves(game, pos, moves_json, player_identifier, maybe_trapped)
                 except Exception as e: # NO DISABLED IN JSON
                     logging.warning('UNABLE TO FIND DISBALED IN MOVE JSON: ' + str(move_json))
                     game.p1_pokemon[pos].moves[position].disabled = False
+                    try:
+                        game.p1_pokemon[pos].moves[position].trapped = move_json['trapped']
+                    except Exception as e:
+                        game.p1_pokemon[pos].moves[position].trapped = True
+                        logging.warning('POKEMON TRAPPED WITH MOVE JSON: ' + str(move_json))
+                        continue
+
                 try:
                     game.p1_pokemon[pos].moves[position].trapped = move_json['trapped']
                 except Exception as e: # NOT TRAPPED
@@ -122,6 +133,13 @@ def update_active_moves(game, pos, moves_json, player_identifier, maybe_trapped)
                 except Exception as e: # NO DISABLED IN JSON
                     logging.warning('UNABLE TO FIND DISBALED IN MOVE JSON: ' + str(move_json))
                     game.p2_pokemon[pos].moves[position].disabled = False
+                    try:
+                        game.p2_pokemon[pos].moves[position].trapped = move_json['trapped']
+                    except Exception as e:
+                        game.p2_pokemon[pos].moves[position].trapped = True
+                        logging.warning('POKEMON TRAPPED WITH MOVE JSON: ' + str(move_json))
+                        continue
+
                 try:
                     game.p2_pokemon[pos].moves[position].trapped = move_json['trapped']
                 except Exception as e: # NOT TRAPPED
@@ -192,6 +210,10 @@ def create_pokemon(pokemon_json):
             move_dict['disabled'] = False
             # logging.warning('CREATED INACTIVE POKEMON MOVES WITH DICT: ' + str(move_dict))
             moves.append(Move(move_dict))
+
+        for i in range(len(moves), 4):
+            moves.append(Move(default_move))
+
         pokemon_json['moves'] = moves
         
     p = Pokemon(pokemon_json)
