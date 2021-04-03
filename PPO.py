@@ -5,6 +5,7 @@ import torch.nn as nn
 from NeuralNet import NeuralNet
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 import wandb
+import logging
 
 import os
 from config import config
@@ -22,6 +23,7 @@ class PPO:
 
         self.model_path = config['model']
         self.optim_path = config['optim']
+        self.max_grad_norm = config['max_grad_norm']
 
 
         self.states = torch.zeros(self.batch_size, self.state_size, device=self.device)
@@ -108,6 +110,7 @@ class PPO:
                 self.optimiser.zero_grad()
                 (value_loss * self.value_loss_coef + policy_loss - entropy * self.entropy_coef).backward()
 
+                nn.utils.clip_grad_norm_(self.a2c.parameters(), self.max_grad_norm)
                 self.optimiser.step()
 
                 total_value_loss += value_loss.item()
@@ -117,6 +120,8 @@ class PPO:
         
         total_policy_loss /= num_updates
         total_value_loss /= num_updates
+
+        logging.info('MODEL UPDATED, policy_loss: ' + str(total_policy_loss) + ' value_loss: ' + str(total_value_loss))
 
         self.post_update()
         self.checkpoint()

@@ -62,7 +62,7 @@ class Ingestor:
 
 
     def pokemon_changes(self,json): 
-        logging.info(str(json))
+        # logging.info(str(json))
         active_moves = None
         maybe_trapped = False
         player_identifier = json['side']['id'] # p1 or p2
@@ -204,6 +204,7 @@ class Ingestor:
     def run(self):
         if self.train and self.episodes_finished % self.trainer_update_frequency == 0: # UPDATE TRAINER WEIGHTS
             self.update_trainer_weights()
+            logging.info('TRAINER WEIGHTS AFTER EPISODE: ' + str(self.episodes_finished))
 
         while self.game_end == False:
             if not self.data_q.empty():
