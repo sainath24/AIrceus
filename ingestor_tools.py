@@ -27,6 +27,8 @@ def get_move_data(move_id):
                 move_id = move_id[:-1]
     
     out_dict['name'] = move_id
+    if 'hiddenpower' in move_id:
+        out_dict['name'] = 'hiddenpower'
 
     if out_dict['accuracy'] == True:
         out_dict['accuracy'] = 100
@@ -185,6 +187,7 @@ def create_pokemon(pokemon_json):
             move_dict['maxpp'] = move_dict['pp']
             move_dict['pp'] = move_dict['pp']
             move_dict['disabled'] = False
+            # logging.warning('CREATED INACTIVE POKEMON MOVES WITH DICT: ' + str(move_dict))
             moves.append(Move(move_dict))
         pokemon_json['moves'] = moves
         

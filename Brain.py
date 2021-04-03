@@ -48,13 +48,12 @@ class Brain:
         actor_values, critic_values = self.algo.a2c(state)
         # logging.debug('ACTION PROBS BEFORE MASK: ' + str(self.player_identifier) + ' ' + str(actor_values))
         
-        # logging.debug('INVALID ACTIONS MASK: ' + str(self.player_identifier) + ' ' + str(invalid_actions))
-
         # INVALID ACTION MASKING
         for i in range(len(invalid_actions)):
             if invalid_actions[i] == 1.0 or (must_switch and i < 4): # ACTION IS INVALID
                 actor_values[i] = -1e8
         
+        # logging.debug('INVALID ACTIONS MASK: ' + str(self.player_identifier) + ' ' + str(invalid_actions))
         actor_values = f.softmax(actor_values, dim = -1)
         # logging.debug('ACTION PROBS AFTER MASK: ' + str(self.player_identifier) + ' ' + str(actor_values))
 
