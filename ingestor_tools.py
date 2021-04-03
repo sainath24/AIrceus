@@ -87,12 +87,13 @@ def update_active_moves(game, pos, moves_json, player_identifier, maybe_trapped)
             if position != None:
                 updated_moves.append(position)
                 try:
-                    game.p1_pokemon[pos].moves[position].pp = move_json['pp']
+                    game.p1_pokemon[pos].moves[position].current_pp = move_json['pp']
                 except Exception as e: # NO PP IN JSON
-                    pass
+                    logging.warning('UNABLE TO FIND PP IN MOVE JSON: ' + str(move_json))
                 try:
                     game.p1_pokemon[pos].moves[position].disabled = move_json['disabled']
                 except Exception as e: # NO DISABLED IN JSON
+                    logging.warning('UNABLE TO FIND DISBALED IN MOVE JSON: ' + str(move_json))
                     game.p1_pokemon[pos].moves[position].disabled = False
                 try:
                     game.p1_pokemon[pos].moves[position].trapped = move_json['trapped']
@@ -115,15 +116,17 @@ def update_active_moves(game, pos, moves_json, player_identifier, maybe_trapped)
                 try:
                     game.p2_pokemon[pos].moves[position].pp = move_json['pp']
                 except Exception as e: # NO PP IN JSON
-                    pass
+                    logging.warning('UNABLE TO FIND PP IN MOVE JSON: ' + str(move_json))
                 try:
                     game.p2_pokemon[pos].moves[position].disabled = move_json['disabled']
                 except Exception as e: # NO DISABLED IN JSON
+                    logging.warning('UNABLE TO FIND DISBALED IN MOVE JSON: ' + str(move_json))
                     game.p2_pokemon[pos].moves[position].disabled = False
                 try:
                     game.p2_pokemon[pos].moves[position].trapped = move_json['trapped']
                 except Exception as e: # NOT TRAPPED
                     game.p2_pokemon[pos].moves[position].trapped = False
+
             
         for i in range(4): # SET DIABLED MOVES IF ANY, ALL NON UPDATED MOVES ARE DISABLED
             if i not in updated_moves:
@@ -234,12 +237,12 @@ def update_pokemons_data(game, pokemons_json, active_moves, player_identifier, m
         update_pokemon(game, position, pokemon_json, player_identifier)
 
         if active_moves != None and player_identifier == 'p1':
-            if game.p1_pokemon[position].active == True:
+            if game.p1_pokemon[position].active == True and game.p1_pokemon[position].hp != 0.0:
                 # game.p1_pokemon[position].set_moves(active_moves)
                 update_active_moves(game, position, active_moves, player_identifier, maybe_trapped)
 
         elif active_moves != None and player_identifier == 'p2':
-            if game.p2_pokemon[position].active == True:
+            if game.p2_pokemon[position].active == True and game.p2_pokemon[position].hp != 0.0:
                 # game.p2_pokemon[position].set_moves(active_moves)
                 update_active_moves(game, position, active_moves, player_identifier, maybe_trapped)
 
