@@ -116,6 +116,10 @@ def update_active_moves(game, pos, moves_json, player_identifier, maybe_trapped)
                 game.p1_pokemon[pos].moves[i].disabled = True
             if maybe_trapped:
                 game.p1_pokemon[pos].moves[i].trapped = True
+        
+        if len(updated_moves) == 0: # NEW SET OF MOVES, EG: DITTO TRANSFORM
+            new_active_moves = get_active_moves(moves_json)
+            set_active_pokemon_moves(game.p1_pokemon[pos], new_active_moves, maybe_trapped)
 
     elif player_identifier == 'p2':
         updated_moves = []
@@ -151,6 +155,10 @@ def update_active_moves(game, pos, moves_json, player_identifier, maybe_trapped)
                 game.p2_pokemon[pos].moves[i].disabled = True
             if maybe_trapped:
                 game.p1_pokemon[pos].moves[i].trapped = True
+        
+        if len(updated_moves) == 0: # NEW SET OF MOVES, EG: DITTO TRANSFORM
+            new_active_moves = get_active_moves(moves_json)
+            set_active_pokemon_moves(game.p2_pokemon[pos], new_active_moves, maybe_trapped)
 
 def get_pokemon_data(name):
     ''' get pokemon data from pokedex using name'''
