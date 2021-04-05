@@ -1,6 +1,7 @@
 import threading
 import subprocess
 import logging
+import multiprocessing
 
 class BattleSimulator:
     def __init__(self, data_queue, action_queue, formatid = 'gen4randombattle', p1 = 'agent', p2 = 'trainer') -> None:
@@ -31,7 +32,8 @@ class BattleSimulator:
 
     def start(self,threaded = True):
         if threaded:
-            battlesim = threading.Thread(target = self.run, args = ())
+            # battlesim = threading.Thread(target = self.run, args = ())
+            battlesim = multiprocessing.Process(target = self.run, args = ())
             battlesim.start()
         else:
             self.run()
@@ -60,6 +62,8 @@ class BattleSimulator:
         self.proc.stdin.flush()
 
         get_action_thread.join()
+
+        self.proc.kill()
 
     def kill(self):
         self.proc.kill()
