@@ -1,16 +1,44 @@
+from config import default_move
 class Move:
     def __init__(self, move_json = None) -> None:
         if move_json != None:
             self.name = move_json['name']
-            self.type = move_json['type'] #
-            self.target = move_json['target']
-            self.accuracy = move_json['accuracy'] #
-            self.base_power = move_json['basePower'] #
-            self.max_pp = move_json['maxpp']
-            self.current_pp = move_json['pp']
-            self.disabled = move_json['disabled']
-            self.user_stat_changes = move_json['user_stat_changes'] ##
-            self.enemy_stat_changes = move_json['enemy_stat_changes'] ##
+            try:
+                self.type = move_json['type'] #
+            except:
+                self.type = default_move['type']
+            try:
+                self.target = move_json['target']
+            except:
+                self.target = default_move['target']
+            try:
+                self.accuracy = move_json['accuracy'] #
+            except:
+                self.accuracy = default_move['accuracy']
+            try:
+                self.base_power = move_json['basePower'] #
+            except:
+                self.base_power = default_move['basePower']
+            try:
+                self.max_pp = move_json['maxpp']
+            except:
+                self.max_pp = default_move['maxpp']
+            try:
+                self.current_pp = move_json['pp']
+            except:
+                self.current_pp = default_move['pp']
+            try:
+                self.disabled = move_json['disabled']
+            except:
+                self.disabled = False
+            try:
+                self.user_stat_changes = move_json['user_stat_changes'] ##
+            except:
+                self.user_stat_changes = default_move['user_stat_changes']
+            try:
+                self.enemy_stat_changes = move_json['enemy_stat_changes'] ##
+            except:
+                self.enemy_stat_changes = default_move['enemy_stat_changes']
             self.trapped = False
     
     def set_current_pp(self, pp):
