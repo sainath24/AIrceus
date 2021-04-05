@@ -14,7 +14,7 @@ def get_move_data(move_id):
         if len(move_id) == 1:
             break
         command = ['node', './get_move_data.js', move_id]
-        proc = subprocess.Popen(command, shell = True, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        proc = subprocess.Popen(command, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         out, err = proc.communicate()
         try:
             out_dict = json.loads(out)
@@ -167,7 +167,7 @@ def get_pokemon_data(name):
         if len(name) == 1:
             break
         command = ['node', './get_pokemon_data.js', name]
-        proc = subprocess.Popen(command, shell = True, stdin=subprocess.PIPE, stdout= subprocess.PIPE, stderr= subprocess.PIPE, universal_newlines=True)
+        proc = subprocess.Popen(command, stdin=subprocess.PIPE, stdout= subprocess.PIPE, stderr= subprocess.PIPE, universal_newlines=True)
         out, err = proc.communicate()
         try:
             out_dict = json.loads(out)
