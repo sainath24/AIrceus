@@ -31,6 +31,7 @@ class PPO:
         self.actions = torch.zeros(self.batch_size, 1, device=self.device)
         self.rewards = torch.zeros(self.batch_size, 1, device=self.device)
         self.values = torch.zeros(self.batch_size, 1, device=self.device)
+        self.returns = torch.zeros(self.batch_size, 1, device= self.device)
         self.log_prob_actions = torch.zeros(self.batch_size,1, device=self.device)
         self.dones = torch.zeros(self.batch_size, 1, device=self.device)
 
@@ -79,13 +80,13 @@ class PPO:
 
     def calculate_returns(self):
         # TODO: IMPLEMENT GAE
-        for i in reversed(range(self.rewards.size(0))):
-            if i+1 < self.rewards.size(0):
-                self.rewards[i] = self.rewards[i] + ( 1 - self.dones[i]) * self.gamma * self.rewards[i+1] 
+        self.returns[-1] = self.values[-1]
+        for i in reversed(range(self.rewards.size(0) - 1)):
+            self.returns[i] = self.rewards[i] + (1 - self.dones[i]) * self.gamma * self.returns[i+1] 
 
     def update(self):
         self.calculate_returns()
-        advantages = self.rewards[:-1] - self.values[:-1]
+        advantages = self.returns[:-1] - self.values[:-1]
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-5)
 
         data = self.data_generator(advantages)

@@ -25,14 +25,13 @@ class Brain:
 
 
     def update_memory(self, action, actor_probs, critic_value, state, step):
-        if (step + 1) % self.batch_size != 0:
-            log_prob_action = actor_probs.log_prob(action)
-
-            self.algo.insert_state(state, step)
-            self.algo.insert_action(action, step)
-            self.algo.insert_log_prob_action(log_prob_action, step)
-            self.algo.insert_value(critic_value, step)
-            self.algo.insert_done(torch.tensor(0.0, dtype=torch.float, device=self.device), step)
+        self.algo.insert_value(critic_value, step)
+        # if (step + 1) % self.batch_size != 0:
+        log_prob_action = actor_probs.log_prob(action)
+        self.algo.insert_state(state, step)
+        self.algo.insert_action(action, step)
+        self.algo.insert_log_prob_action(log_prob_action, step)
+        self.algo.insert_done(torch.tensor(0.0, dtype=torch.float, device=self.device), step)
 
         self.update(step)
 
@@ -65,9 +64,10 @@ class Brain:
         action = actor_probs.sample()
 
         if self.train:
-            self.update_memory(action, actor_probs, critic_values, state, step)
             if step > 0:
                 self.compute_rewards(state, step-1, game)
+            self.update_memory(action, actor_probs, critic_values, state, step)
+            
                 # TODO: COMPUTE REWARDS AND APPEND AT STEP -1
         
         return action.item()
