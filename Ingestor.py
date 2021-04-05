@@ -12,7 +12,6 @@ from Brain import Brain
 import logging
 # logging.basicConfig(filename=config['log'], level=logging.DEBUG)
 
-
 class Ingestor:
     def __init__(self, data_queue, translator, train, game) -> None:
         self.data_q = data_queue

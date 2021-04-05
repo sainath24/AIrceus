@@ -154,7 +154,7 @@ def update_active_moves(game, pos, moves_json, player_identifier, maybe_trapped)
             if i not in updated_moves:
                 game.p2_pokemon[pos].moves[i].disabled = True
             if maybe_trapped:
-                game.p1_pokemon[pos].moves[i].trapped = True
+                game.p2_pokemon[pos].moves[i].trapped = True
         
         if len(updated_moves) == 0: # NEW SET OF MOVES, EG: DITTO TRANSFORM
             new_active_moves = get_active_moves(moves_json)

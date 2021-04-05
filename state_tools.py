@@ -1,5 +1,6 @@
 import torch
 import type_multiplier
+import logging
 
 def normalize_score(score, minimum, maximum):
     ''' normalize to range [0,1] '''
