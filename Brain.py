@@ -59,9 +59,12 @@ class Brain:
         # logging.debug('INVALID ACTIONS MASK: ' + str(self.player_identifier) + ' ' + str(invalid_actions))
         actor_values = f.softmax(actor_values, dim = -1)
         # logging.debug('ACTION PROBS AFTER MASK: ' + str(self.player_identifier) + ' ' + str(actor_values))
-
+        # if self.train:
         actor_probs = Categorical(actor_values)
         action = actor_probs.sample()
+        # else:
+        #     print('action probabilities: ', actor_values)
+        #     action = torch.argmax(actor_values)
 
         if self.train:
             if step > 0:
@@ -73,6 +76,7 @@ class Brain:
         return action.item()
 
     def create_state(self, game):
+        # logging.warning('GAME DICT: ', str(game.get_dict()))
         state = state_tools.get_state(game, self.player_identifier)
         invalid_actions = state_tools.get_invalid_actions(game, self.player_identifier)
 

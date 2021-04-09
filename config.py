@@ -17,7 +17,7 @@ config = {
     'max_grad_norm' : 100.0,
     'gamma': 0.99,
     'trainer_update_frequency': 10, # IN EPISODES
-    'use_wandb': True
+    'use_wandb': False
     ## TODO: ADD REST OF THE CONFIG AND SET PARAMS
 }
 
@@ -27,10 +27,22 @@ default_move = {
     'target': 'self',
     'accuracy': 0,
     'basePower': 0,
-    'maxpp': 1,
-    'pp': 1,
+    'maxpp': 0,
+    'pp': 0,
     'disabled': True, 
     'user_stat_changes': {},
     'enemy_stat_changes': {},
     'trapped': False
+}
+
+default_pokemon = {
+    'details': 'default',
+    'types': ['null'],
+    'active': False,
+    'hp': 0.0,
+    'status': ['fnt'],
+    'stats': {'atk':0.0, 'def':0.0, 'spa':0.0, 'spd':0.0, 'spe':0.0},
+    'baseAbility': 'null',
+    'item': 'null',
+    'moves': []
 }

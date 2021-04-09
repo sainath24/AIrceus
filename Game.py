@@ -59,7 +59,8 @@ class Game:
             for i in range(0, len(self.p2_pokemon)):
                 if pokemon_details == self.p2_pokemon[i].name:
                     return i
-        logging.error('UNABLE TO FIND POKEMON FOR POKEMON DETAILS: ' + str(pokemon_details) + '\n IN POKEMON LIST: ' + self.get_dict())
+        logging.error('UNABLE TO FIND POKEMON FOR POKEMON DETAILS: ' + str(pokemon_details) + '\n IN POKEMON LIST: ' + str(self.get_dict()))
+        return None
 
     def get_dict(self):
         game = {}
