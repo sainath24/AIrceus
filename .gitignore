@@ -2,3 +2,6 @@ pokemon-showdown/
 __pycache__/
 node_modules/
 wandb/
+optims/
+logs/
+models/
