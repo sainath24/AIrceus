@@ -2,6 +2,12 @@ import torch
 import type_multiplier
 import logging
 
+ACTIVE_ENEMY_POKEMON_WEIGHT = 6
+
+def get_default_state():
+    '''All 0 for fainted pokemon in player's team, not opposition'''
+    return torch.zeros(70, dtype=torch.float)
+
 def normalize_score(score, minimum, maximum):
     ''' normalize to range [0,1] '''
     score = (score - minimum)/(maximum - minimum)
@@ -84,11 +90,15 @@ def get_pokemon_type_adv(pokemon, enemy_pokemon):
     ## POKEMON TYPE ADVANTAGE
     for poke_type in pokemon.type:
         for enemy_type in enemy_pokemon.type:
-            pokemon_type_adv.append(type_multiplier.getMultiplier(poke_type, enemy_type))
+            multiplier = type_multiplier.getMultiplier(poke_type, enemy_type)
+            if enemy_pokemon.active:
+                multiplier *= ACTIVE_ENEMY_POKEMON_WEIGHT
+            pokemon_type_adv.append(multiplier)
     
-    avg = torch.tensor(pokemon_type_adv, dtype=torch.float).mean().item()
-    pokemon_type_adv = torch.tensor(normalize_score(avg, -2.0, 2.0), dtype= torch.float)
-    pokemon_type_adv = torch.clamp(pokemon_type_adv, 0.0, 1.0).item()
+    pokemon_type_adv = torch.tensor(pokemon_type_adv, dtype=torch.float).mean().item()
+    # pokemon_type_adv = torch.tensor(normalize_score(avg, -2.0, 2.0), dtype= torch.float)
+    # pokemon_type_adv = torch.tensor(normalize_score(avg, -2.66, 2.66), dtype= torch.float) # BECAUSE ACITVE ENEMY WEIGHT = 3
+    # pokemon_type_adv = torch.clamp(pokemon_type_adv, 0.0, 1.0).item()
     return pokemon_type_adv
 
 def get_pokemon_move_adv(move, enemy_pokemon_list):
@@ -97,7 +107,10 @@ def get_pokemon_move_adv(move, enemy_pokemon_list):
         if pokemon.hp != 0.0:
             adv = []
             for enemy_type in pokemon.type:
-                adv.append(type_multiplier.getMultiplier(move.type, enemy_type))
+                multiplier = type_multiplier.getMultiplier(move.type, enemy_type)
+                if pokemon.active:
+                    multiplier *= ACTIVE_ENEMY_POKEMON_WEIGHT
+                adv.append(multiplier)
             avg = torch.tensor(adv, dtype=torch.float).mean().item()
             move_adv.append(avg)
     
@@ -112,7 +125,10 @@ def get_move_specific_state(move):
     '''return move specific state'''
     base_power = torch.clamp(torch.tensor([normalize_score(move.base_power, 0.0, 500.0)], dtype=torch.float), 0.0, 1.0)
     accuracy = torch.clamp(torch.tensor([normalize_score(move.accuracy, 0.0, 100.0)], dtype=torch.float), 0.0, 1.0)
-    pp = float(move.current_pp)/float(move.max_pp)
+    try:
+        pp = float(move.current_pp)/float(move.max_pp)
+    except Exception as e: # CAN DIVIDE BY ZERO WHEN USING DEFAULT MOVE
+        pp = 0.0
     pp = torch.tensor([pp], dtype=torch.float)
     disabled = torch.tensor([1.0], dtype = torch.float) if move.disabled else torch.tensor([0.0], dtype = torch.float)
     stats_change = get_move_stats_state(move)
@@ -121,28 +137,40 @@ def get_move_specific_state(move):
 
     return state
 
+def calculate_type_adv_normal(type_array):
+    num = (type_multiplier.EFFECTIVE_MUL * (len(type_array) - 1)) + (type_multiplier.EFFECTIVE_MUL * ACTIVE_ENEMY_POKEMON_WEIGHT)
+    num /= float(len(type_array))
+
+    return num
+
 
 def get_pokemon_state(pokemon, enemy_pokemon_list, base, weather = None):
     '''compare pokemon with every enemy'''
-    pokemon_state = get_pokemon_specific_state(pokemon, base)
+    if pokemon.hp != 0.0:
+        pokemon_state = get_pokemon_specific_state(pokemon, base)
 
-    ## POKEMON TYPE ADVANTAGE
-    type_adv = []
-    for enemy_pokemon in enemy_pokemon_list:
-        pokemon_type_adv = get_pokemon_type_adv(pokemon, enemy_pokemon)
-        if pokemon_type_adv != None:
-            type_adv.append(pokemon_type_adv)
-    avg = torch.tensor(type_adv, dtype=torch.float).mean().item()
-    type_adv = torch.tensor([normalize_score(avg, -2.0, 2.0)], dtype=torch.float)
-    type_adv = torch.clamp(type_adv, 0.0, 1.0)
+        ## POKEMON TYPE ADVANTAGE
+        type_adv = []
+        for enemy_pokemon in enemy_pokemon_list:
+            pokemon_type_adv = get_pokemon_type_adv(pokemon, enemy_pokemon)
+            if pokemon_type_adv != None:
+                type_adv.append(pokemon_type_adv)
+        # normal = calculate_type_adv_normal(type_adv)
+        avg = torch.tensor(type_adv, dtype=torch.float).mean().item()
+        type_adv = torch.tensor([normalize_score(avg, -2.0, 2.0)], dtype=torch.float)
+        type_adv = torch.clamp(type_adv, 0.0, 1.0)
 
-    ## MOVE STATE
-    move_state = torch.tensor([])
-    for move in pokemon.moves:
-        move_state = torch.cat((move_state, get_move_specific_state(move)))
-        move_state = torch.cat((move_state, get_pokemon_move_adv(move, enemy_pokemon_list)))
+        ## MOVE STATE
+        move_state = torch.tensor([])
+        for move in pokemon.moves:
+            move_state = torch.cat((move_state, get_move_specific_state(move)))
+            move_state = torch.cat((move_state, get_pokemon_move_adv(move, enemy_pokemon_list)))
 
-    state = torch.cat((pokemon_state, type_adv, move_state))
+        state = torch.cat((pokemon_state, type_adv, move_state))
+    
+    else:
+        logging.warning('SENDING DEFAULT STATE')
+        state = get_default_state()
 
     
     return state

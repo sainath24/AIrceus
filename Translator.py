@@ -1,7 +1,8 @@
 import logging
 class Translator:
-    def __init__(self, action_queue) -> None:
+    def __init__(self, action_queue, for_websocket = False) -> None:
         self.action_q = action_queue
+        self.for_websocket = for_websocket
 
     def get_switch_name(self, pokemon_list, position):
         name = pokemon_list[position].name
@@ -23,11 +24,18 @@ class Translator:
 
     def translate(self, player_identifier, action, pokemon_list):
         output = '>' + player_identifier
+        if self.for_websocket:
+            output = '|/choose'
         if action < 4: # MOVE
             output = output + ' move ' + str(self.get_move_name(pokemon_list, int(action))) + '\n'
         else: # SWITCH
-            output = output + ' switch ' + str(self.get_switch_name(pokemon_list, int(action) - 4)) + '\n'
+            if self.for_websocket:
+                output = '|/switch ' + str(self.get_switch_name(pokemon_list, int(action) - 4)) + '\n'
+            else:
+                output = output + ' switch ' + str(self.get_switch_name(pokemon_list, int(action) - 4)) + '\n'
 
+
+        # logging.warning('ACTION: ' + str(output))
         return output
 
     def write_action_queue(self,action):

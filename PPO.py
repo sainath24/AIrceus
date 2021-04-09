@@ -69,9 +69,11 @@ class PPO:
     
     def load(self):
         if os.path.isfile(self.model_path):
+            print('\n\nMODEL LOADED')
             self.a2c.load_state_dict(torch.load(self.model_path, map_location=self.device))
 
         if os.path.isfile(self.optim_path):
+            print('\n\nOPTIMIZER LOADED')
             self.optimiser.load_state_dict(torch.load(self.optim_path, map_location=self.device))
     
     def checkpoint(self):
