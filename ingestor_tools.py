@@ -5,7 +5,14 @@ import json
 import logging
 from config import config
 from config import default_move
+from config import default_pokemon
 # logging.basicConfig(filename= config['log'], level=logging.DEBUG)
+
+def make_default_pokemon():
+    pokemon = Pokemon(default_pokemon)
+    moves = [Move(default_move)] * 4
+    pokemon.set_moves(moves)
+    return pokemon
 
 def get_move_data(move_id):
     ''' get rest of the move data from moves.js'''
@@ -110,16 +117,21 @@ def update_active_moves(game, pos, moves_json, player_identifier, maybe_trapped)
                     game.p1_pokemon[pos].moves[position].trapped = move_json['trapped']
                 except Exception as e: # NOT TRAPPED
                     game.p1_pokemon[pos].moves[position].trapped = False
-            
-        for i in range(4): # SET DIABLED MOVES IF ANY, ALL NON UPDATED MOVES ARE DISABLED
-            if i not in updated_moves:
-                game.p1_pokemon[pos].moves[i].disabled = True
-            if maybe_trapped:
-                game.p1_pokemon[pos].moves[i].trapped = True
-        
+
+        # logging.warning('Moves updated: ' + str(updated_moves))
         if len(updated_moves) == 0: # NEW SET OF MOVES, EG: DITTO TRANSFORM
+            # logging.warning('Creating new moves for json: ' + str(moves_json))
             new_active_moves = get_active_moves(moves_json)
             set_active_pokemon_moves(game.p1_pokemon[pos], new_active_moves, maybe_trapped)
+            # logging.warning('new pokemon with moves: ' + str(game.p1_pokemon[pos].get_dict()))
+        
+        else:
+            for i in range(4): # SET DIABLED MOVES IF ANY, ALL NON UPDATED MOVES ARE DISABLED
+                if i not in updated_moves:
+                    game.p1_pokemon[pos].moves[i].disabled = True
+                if maybe_trapped:
+                    game.p1_pokemon[pos].moves[i].trapped = True
+        
 
     elif player_identifier == 'p2':
         updated_moves = []
@@ -149,16 +161,22 @@ def update_active_moves(game, pos, moves_json, player_identifier, maybe_trapped)
                 except Exception as e: # NOT TRAPPED
                     game.p2_pokemon[pos].moves[position].trapped = False
 
-            
-        for i in range(4): # SET DIABLED MOVES IF ANY, ALL NON UPDATED MOVES ARE DISABLED
-            if i not in updated_moves:
-                game.p2_pokemon[pos].moves[i].disabled = True
-            if maybe_trapped:
-                game.p2_pokemon[pos].moves[i].trapped = True
-        
+
+        # logging.warning('Moves updated: ' + str(updated_moves))
         if len(updated_moves) == 0: # NEW SET OF MOVES, EG: DITTO TRANSFORM
+            # logging.warning('Creating new moves for json: ' + str(moves_json))
             new_active_moves = get_active_moves(moves_json)
             set_active_pokemon_moves(game.p2_pokemon[pos], new_active_moves, maybe_trapped)
+            # logging.warning('new pokemon with moves: ' + str(game.p2_pokemon[pos].get_dict()))
+
+        else:
+            for i in range(4): # SET DIABLED MOVES IF ANY, ALL NON UPDATED MOVES ARE DISABLED
+                if i not in updated_moves:
+                    game.p2_pokemon[pos].moves[i].disabled = True
+                if maybe_trapped:
+                    game.p2_pokemon[pos].moves[i].trapped = True
+        
+        
 
 def get_pokemon_data(name):
     ''' get pokemon data from pokedex using name'''
@@ -251,6 +269,8 @@ def update_pokemon(game, pos, pokemon_json, player_identifier):
         game.p1_pokemon[pos].status = status
         game.p1_pokemon[pos].stats = pokemon_json['stats']
         game.p1_pokemon[pos].item = pokemon_json['item']
+        # if game.p1_pokemon[pos].hp == 0.0: # POKEMON FAINTED, CHANGE TO DEFAULT POKEMON
+        #     game.p1_pokemon[pos] = make_default_pokemon()
 
     elif player_identifier == 'p2':
         game.p2_pokemon[pos].active = pokemon_json['active']
@@ -259,20 +279,22 @@ def update_pokemon(game, pos, pokemon_json, player_identifier):
         game.p2_pokemon[pos].status = status
         game.p2_pokemon[pos].stats = pokemon_json['stats']
         game.p2_pokemon[pos].item = pokemon_json['item']
+        # if game.p2_pokemon[pos].hp == 0.0: # POKEMON FAINTED, CHANGE TO DEFAULT POKEMON
+        #     game.p2_pokemon[pos] = make_default_pokemon()
 
 def update_pokemons_data(game, pokemons_json, active_moves, player_identifier, maybe_trapped):
     '''update pokemon data for a team with pokemons_json'''
     for pokemon_json in pokemons_json:
         position = game.get_pokemon_pos(pokemon_json['details'], player_identifier)
-        update_pokemon(game, position, pokemon_json, player_identifier)
+        if position != None:
+            update_pokemon(game, position, pokemon_json, player_identifier)
+            if active_moves != None and player_identifier == 'p1':
+                if game.p1_pokemon[position].active == True and game.p1_pokemon[position].hp != 0.0:
+                    # game.p1_pokemon[position].set_moves(active_moves)
+                    update_active_moves(game, position, active_moves, player_identifier, maybe_trapped)
 
-        if active_moves != None and player_identifier == 'p1':
-            if game.p1_pokemon[position].active == True and game.p1_pokemon[position].hp != 0.0:
-                # game.p1_pokemon[position].set_moves(active_moves)
-                update_active_moves(game, position, active_moves, player_identifier, maybe_trapped)
-
-        elif active_moves != None and player_identifier == 'p2':
-            if game.p2_pokemon[position].active == True and game.p2_pokemon[position].hp != 0.0:
-                # game.p2_pokemon[position].set_moves(active_moves)
-                update_active_moves(game, position, active_moves, player_identifier, maybe_trapped)
+            elif active_moves != None and player_identifier == 'p2':
+                if game.p2_pokemon[position].active == True and game.p2_pokemon[position].hp != 0.0:
+                    # game.p2_pokemon[position].set_moves(active_moves)
+                    update_active_moves(game, position, active_moves, player_identifier, maybe_trapped)
 

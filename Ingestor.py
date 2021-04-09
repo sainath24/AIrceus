@@ -1,4 +1,5 @@
 import threading
+import multiprocessing
 import json
 import ingestor_tools
 from queue import Queue
@@ -21,7 +22,7 @@ class Ingestor:
             self.agent = Brain('p1', train = True)
             self.trainer = Brain('p2', train= False)
         else:
-            self.agent = Brain('p1', train = False)
+            self.agent = Brain('p2', train = False) # AGENT COMES OUT AS p2 WHEN CHALLENGED BY A PLAYER
         # self.brain = brain
         self.game = game
         self.switch_queue = Queue()
@@ -43,8 +44,10 @@ class Ingestor:
     def start(self,threaded = True):
         if threaded:
             ingestor_thread = threading.Thread(target=self.run)
+            # ingestor_thread = multiprocessing.Process(target=self.run, args=())
             ingestor_thread.start()
-            ingestor_thread.join() # USED TO EXIT GAME WHEN OVER
+            if self.train:
+                ingestor_thread.join() # USED TO EXIT GAME WHEN OVER
         else:
             self.run()
 
@@ -88,7 +91,10 @@ class Ingestor:
             ingestor_tools.update_pokemons_data(self.game, pokemon_json, active_moves, player_identifier, maybe_trapped)
         
         if 'forceSwitch' in json.keys(): # HAVE TO SWITCH, DONT GET ACTIVE MOVES
-            self.switch_queue.put(player_identifier)
+            if player_identifier == self.agent.player_identifier:
+                self.switch_queue.put(player_identifier)
+            elif self.train and self.trainer.player_identifier == player_identifier:
+                self.switch_queue.put(player_identifier)
         
         return player_identifier
 
@@ -123,23 +129,33 @@ class Ingestor:
 
 
     def choose_switch(self, player_identifier):
-        if player_identifier == 'p1':
+        action = None
+        if player_identifier == self.agent.player_identifier:
             action = self.agent.get_action(self.game, self.step, must_switch= True)
-            action = self.translator.translate(player_identifier, action, self.game.p1_pokemon)
-        elif player_identifier == 'p2':
+            if self.agent.player_identifier == 'p1':
+                action = self.translator.translate(player_identifier, action, self.game.p1_pokemon)
+            elif self.agent.player_identifier == 'p2':
+                action = self.translator.translate(player_identifier, action, self.game.p2_pokemon)
+        elif self.train and player_identifier == self.trainer.player_identifier:
             action = self.trainer.get_action(self.game, self.step, must_switch= True)
             action = self.translator.translate(player_identifier, action, self.game.p2_pokemon)
 
         
-        self.translator.write_action_queue(action)
+        if action!= None: 
+            self.translator.write_action_queue(action)
 
         self.increment_step()
         
     
     def take_decision(self):
         agent_action = self.agent.get_action(self.game, self.step, must_switch=False)
-        agent_action = self.translator.translate('p1', agent_action, self.game.p1_pokemon)
+        if self.agent.player_identifier == 'p1':
+            agent_action = self.translator.translate(self.agent.player_identifier, agent_action, self.game.p1_pokemon)
+        elif self.agent.player_identifier == 'p2':
+            agent_action = self.translator.translate(self.agent.player_identifier, agent_action, self.game.p2_pokemon)
+
         self.translator.write_action_queue(agent_action)
+        # print('Wrote: ' + str(agent_action) + ' to action queue')
         
         if self.train:
             trainer_action = self.trainer.get_action(self.game, self.step, must_switch=False)
@@ -165,7 +181,13 @@ class Ingestor:
 
     def ingest(self,line):
         if '|request|' in line: # get data about players
-            json_data = json.loads(line[9:])
+            try:
+                json_data = json.loads(line[9:])
+            except: # NOT A VALID REQUEST WITH POKEMON DATA
+                # logging.warning('INVALID JSON: ', line)
+                # print('invalid json')
+                return 
+            # print('JSON: ', json_data, 'hello')
             player = self.pokemon_changes(json_data)
             if self.switch_queue.empty() == False and player == 'p2': # SOME OR ALL PLAYERS HAVE TO SWITCH
                 while not self.switch_queue.empty():
@@ -203,6 +225,7 @@ class Ingestor:
             
 
     def run(self):
+        logging.warning('INGESTOR STARTING')
         if self.train and self.episodes_finished % self.trainer_update_frequency == 0: # UPDATE TRAINER WEIGHTS
             self.update_trainer_weights()
             logging.info('TRAINER WEIGHTS UPDATED AFTER EPISODE: ' + str(self.episodes_finished))
@@ -210,10 +233,19 @@ class Ingestor:
         while self.game_end == False:
             if not self.data_q.empty():
                 line = self.data_q.get()
+                if '>' == line[0]:
+                    # print('Invalid line: ', line)
+                    # logging.warning('FOUND INVALID LINE: ', line)
+                    position = line.find('|')
+                    line = line[position:]
                 # print(line)
-                # logging.info(line)
+                if self.train:
+                    logging.info(line)
                 self.ingest(line)
         self.episodes_finished += 1
         self.game_end = False
         # print('\n INGESTOR GAME OVER \n')
+    
+    def kill(self):
+        self.game_end = True
                 
