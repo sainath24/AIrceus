@@ -2,7 +2,7 @@ import torch
 import type_multiplier
 import logging
 
-ACTIVE_ENEMY_POKEMON_WEIGHT = 6
+ACTIVE_ENEMY_POKEMON_WEIGHT = 1
 
 def get_default_state():
     '''All 0 for fainted pokemon in player's team, not opposition'''
@@ -104,7 +104,7 @@ def get_pokemon_type_adv(pokemon, enemy_pokemon):
 def get_pokemon_move_adv(move, enemy_pokemon_list):
     move_adv = []
     for pokemon in enemy_pokemon_list:
-        if pokemon.hp != 0.0:
+        if pokemon.hp != 0.0 and pokemon.active: # TEMP AND CONDITION TO GET ONLY TYPE ADV FOR ACTIVE ENEMY POKEMON
             adv = []
             for enemy_type in pokemon.type:
                 multiplier = type_multiplier.getMultiplier(move.type, enemy_type)
@@ -152,9 +152,10 @@ def get_pokemon_state(pokemon, enemy_pokemon_list, base, weather = None):
         ## POKEMON TYPE ADVANTAGE
         type_adv = []
         for enemy_pokemon in enemy_pokemon_list:
-            pokemon_type_adv = get_pokemon_type_adv(pokemon, enemy_pokemon)
-            if pokemon_type_adv != None:
-                type_adv.append(pokemon_type_adv)
+            if enemy_pokemon.active: # TEMP CONDITION TO GET ONLY ACTIVE ENEMY TYPE ADV
+                pokemon_type_adv = get_pokemon_type_adv(pokemon, enemy_pokemon)
+                if pokemon_type_adv != None:
+                    type_adv.append(pokemon_type_adv)
         # normal = calculate_type_adv_normal(type_adv)
         avg = torch.tensor(type_adv, dtype=torch.float).mean().item()
         type_adv = torch.tensor([normalize_score(avg, -2.0, 2.0)], dtype=torch.float)
