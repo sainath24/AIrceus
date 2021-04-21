@@ -2,7 +2,7 @@ config = {
     'model': 'model.pth',
     'optim': 'optim.pth',
     'log': 'game.log',
-    'optim_lr': 1e-4,
+    'optim_lr': 1e-3,
     'episodes': 1000,
     'state_size': 840,
     'action_size': 10,
@@ -13,7 +13,7 @@ config = {
     'epochs': 5,
     'clip_param': 0.2,
     'value_loss_coef': 1,
-    'entropy_coef' : 1e-2,
+    'entropy_coef' : 1e-1,
     'max_grad_norm' : 100.0,
     'gamma': 0.99,
     'trainer_update_frequency': 10, # IN EPISODES
