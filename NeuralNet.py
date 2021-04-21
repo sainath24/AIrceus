@@ -3,11 +3,12 @@ from torch._C import device
 import torch.nn as nn
 
 class NeuralNet(nn.Module):
-    def __init__(self, state_size, action_size, hidden_size):
+    def __init__(self, state_size, action_size, hidden_size, device):
         super(NeuralNet, self).__init__()
         self.state_size = state_size
         self.hidden_size = hidden_size
         self.action_size = action_size
+        self.device = device
 
         self.lstm = nn.LSTM(state_size, hidden_size)
 
@@ -23,10 +24,10 @@ class NeuralNet(nn.Module):
             nn.Linear(hidden_size, 1)
         )
 
-        self.lstm_hidden = (torch.zeros(1,1,hidden_size), torch.zeros(1,1,hidden_size))
+        self.lstm_hidden = (torch.zeros(1,1,hidden_size, device=self.device), torch.zeros(1,1,hidden_size, device=self.device))
 
-    def reset_lstm_hidden_states(self):
-        self.lstm_hidden = (torch.zeros(1,1,self.hidden_size), torch.zeros(1,1,self.hidden_size))
+    def reset_lstm_hidden_states(self): 
+        self.lstm_hidden = (torch.zeros(1,1,self.hidden_size, device=self.device), torch.zeros(1,1,self.hidden_size, device=self.device))
 
 
     def forward(self, nn_input, lstm_hidden = None):
@@ -39,10 +40,12 @@ class NeuralNet(nn.Module):
             # print('\nLSTM HIDDEN LEN: ',len(self.lstm_hidden))
             # print('\nLSTM HIDDEN SIZE: ', self.lstm_hidden[0].size())
         else:
+            # lstm_hidden = lstm_hidden.unsqueeze(0)
             # print('\nUPDATE LSTM BEOFRE UNBIND: ', lstm_hidden.size())
-            lstm_hidden = torch.unbind(lstm_hidden)
+            # lstm_hidden = torch.unbind(lstm_hidden)
             # print('\nLEN OF UPDATE LSTM AFTER UNBIND: ', len(lstm_hidden))
             # print('\nUPDATE LSTM AFTER UNBIND: ', lstm_hidden[0].size(), lstm_hidden[1].size())
+            # lstm_hidden = [x.unbind() for x in lstm_hidden]
             output, _ = self.lstm(nn_input, lstm_hidden)
         
         # print('\nLSTM OUTPUT: ', output.size())

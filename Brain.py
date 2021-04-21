@@ -1,4 +1,5 @@
 import torch
+from torch._C import device
 import torch.nn as nn
 import torch.nn.functional as f
 import torch.optim as optim
@@ -48,7 +49,7 @@ class Brain:
         state, invalid_actions = self.create_state(game)
         # print('\nSTATE LENGTH: ', state.size())
         # print('\nSTATE: ', state)
-        lstm_hidden_to_insert = torch.stack(self.algo.a2c.lstm_hidden).detach() # IS A TUPLE OF TENSORS, STACK AS ONE TESNOR IN ORDER TO INSERT INTO REPLAY BUFFER
+        lstm_hidden_to_insert = self.algo.a2c.lstm_hidden#torch.stack(self.algo.a2c.lstm_hidden).detach() # IS A TUPLE OF TENSORS, STACK AS ONE TESNOR IN ORDER TO INSERT INTO REPLAY BUFFER
         state = state.to(self.device)
         actor_values, critic_values, _ = self.algo.a2c(state.unsqueeze(0))
         # logging.debug('ACTION PROBS BEFORE MASK: ' + str(self.player_identifier) + ' ' + str(actor_values))

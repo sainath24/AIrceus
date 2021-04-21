@@ -34,9 +34,11 @@ class PPO:
         self.returns = torch.zeros(self.batch_size, 1, device= self.device)
         self.log_prob_actions = torch.zeros(self.batch_size,1, device=self.device)
         self.dones = torch.zeros(self.batch_size, 1, device=self.device)
-        self.lstm_hidden = torch.zeros(self.batch_size, 2, 1 ,1, self.hidden_size, device = self.device)
+        # self.lstm_hidden = torch.zeros(self.batch_size, 2, 1 ,1, self.hidden_size, device = self.device)
+        self.hx = torch.zeros(self.batch_size,self.hidden_size, device = self.device)
+        self.cx = torch.zeros(self.batch_size,self.hidden_size, device = self.device)
 
-        self.a2c = NeuralNet(self.state_size, self.action_size, self.hidden_size)
+        self.a2c = NeuralNet(self.state_size, self.action_size, self.hidden_size, self.device)
         self.optimiser = optim.Adam(self.a2c.parameters(), lr=config['optim_lr'])
 
         self.value_loss_coef = config['value_loss_coef']
@@ -69,7 +71,9 @@ class PPO:
         self.dones[step].copy_(done)
     
     def insert_lstm_hidden(self, lstm_hidden, step):
-        self.lstm_hidden[step].copy_(lstm_hidden)
+        self.hx[step].copy_(lstm_hidden[0].detach().squeeze())
+        self.cx[step].copy_(lstm_hidden[1].detach().squeeze())
+        # self.lstm_hidden[step].copy_(lstm_hidden)
     
     def load(self):
         if os.path.isfile(self.model_path):
@@ -149,7 +153,11 @@ class PPO:
             rewards_batch = self.rewards[:-1].view(-1, 1)[indices]
             dones_batch = self.dones[:-1].view(-1,1)[indices]
             old_action_log_probs_batch = self.log_prob_actions[:-1].view(-1, 1)[indices]
-            lstm_hidden_batch = self.lstm_hidden[:-1].view(-1, 1, mini_batch_size, self.lstm_hidden.size(-1))[indices]
+            # lstm_hidden_batch = self.lstm_hidden[:-1].view(-1, 1, mini_batch_size, self.lstm_hidden.size(-1))[indices]
+            # lstm_hidden_batch = self.lstm_hidden[:-1][indices]
+            hx_batch = self.hx[:-1].view(-1, self.hidden_size)[indices].unsqueeze(0)
+            cx_batch = self.cx[:-1].view(-1, self.hidden_size)[indices].unsqueeze(0)
+            lstm_hidden_batch = (hx_batch, cx_batch)
 
             adv_targ = advantages.view(-1,1)[indices]
 
@@ -174,7 +182,9 @@ class PPO:
         self.values[0].copy_(self.values[-1])
         self.log_prob_actions[0].copy_(self.log_prob_actions[-1])
         self.dones[0].copy_(self.dones[-1])
-        self.lstm_hidden[0].copy_(self.lstm_hidden[-1])
+        # self.lstm_hidden[0].copy_(self.lstm_hidden[-1])
+        self.hx[0].copy_(self.hx[-1])
+        self.cx[0].copy_(self.cx[-1])
 
         
 
