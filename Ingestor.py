@@ -177,6 +177,11 @@ class Ingestor:
         self.agent.game_over(self.game, self.step)
         self.translator.write_action_queue('game_over')
         self.game_end = True
+
+        # RESET LSTM HIDDEN STATES AFTER GAME OVER
+        self.agent.algo.a2c.reset_lstm_hidden_states()
+        if self.train:
+            self.trainer.algo.a2c.reset_lstm_hidden_states()
         # TODO: HANDLE GAME OVER
 
     def ingest(self,line):

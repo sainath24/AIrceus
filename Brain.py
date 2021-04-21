@@ -24,7 +24,7 @@ class Brain:
                 config['state_size'], config['action_size'], config['hidden_size'], config['clip_param'],self.device)
 
 
-    def update_memory(self, action, actor_probs, critic_value, state, step):
+    def update_memory(self, lstm_hidden, action, actor_probs, critic_value, state, step):
         self.algo.insert_value(critic_value, step)
         # if (step + 1) % self.batch_size != 0:
         log_prob_action = actor_probs.log_prob(action)
@@ -32,6 +32,7 @@ class Brain:
         self.algo.insert_action(action, step)
         self.algo.insert_log_prob_action(log_prob_action, step)
         self.algo.insert_done(torch.tensor(0.0, dtype=torch.float, device=self.device), step)
+        self.algo.insert_lstm_hidden(lstm_hidden, step)
 
         self.update(step)
 
@@ -47,8 +48,9 @@ class Brain:
         state, invalid_actions = self.create_state(game)
         # print('\nSTATE LENGTH: ', state.size())
         # print('\nSTATE: ', state)
+        lstm_hidden_to_insert = torch.stack(self.algo.a2c.lstm_hidden).detach() # IS A TUPLE OF TENSORS, STACK AS ONE TESNOR IN ORDER TO INSERT INTO REPLAY BUFFER
         state = state.to(self.device)
-        actor_values, critic_values = self.algo.a2c(state)
+        actor_values, critic_values, _ = self.algo.a2c(state.unsqueeze(0))
         # logging.debug('ACTION PROBS BEFORE MASK: ' + str(self.player_identifier) + ' ' + str(actor_values))
         
         # INVALID ACTION MASKING
@@ -60,16 +62,16 @@ class Brain:
         actor_values = f.softmax(actor_values, dim = -1)
         # logging.debug('ACTION PROBS AFTER MASK: ' + str(self.player_identifier) + ' ' + str(actor_values))
         # if self.train:
+        # print('action probabilities: ', actor_values)
         actor_probs = Categorical(actor_values)
         action = actor_probs.sample()
         # else:
-        #     print('action probabilities: ', actor_values)
-        #     action = torch.argmax(actor_values)
+        # action = torch.argmax(actor_values)
 
         if self.train:
             if step > 0:
                 self.compute_rewards(state, step-1, game)
-            self.update_memory(action, actor_probs, critic_values, state, step)
+            self.update_memory(lstm_hidden_to_insert, action, actor_probs, critic_values, state, step)
             
                 # TODO: COMPUTE REWARDS AND APPEND AT STEP -1
         

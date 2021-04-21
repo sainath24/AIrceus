@@ -34,6 +34,7 @@ class PPO:
         self.returns = torch.zeros(self.batch_size, 1, device= self.device)
         self.log_prob_actions = torch.zeros(self.batch_size,1, device=self.device)
         self.dones = torch.zeros(self.batch_size, 1, device=self.device)
+        self.lstm_hidden = torch.zeros(self.batch_size, 2, 1 ,1, self.hidden_size, device = self.device)
 
         self.a2c = NeuralNet(self.state_size, self.action_size, self.hidden_size)
         self.optimiser = optim.Adam(self.a2c.parameters(), lr=config['optim_lr'])
@@ -67,10 +68,14 @@ class PPO:
     def insert_done(self, done, step):
         self.dones[step].copy_(done)
     
+    def insert_lstm_hidden(self, lstm_hidden, step):
+        self.lstm_hidden[step].copy_(lstm_hidden)
+    
     def load(self):
         if os.path.isfile(self.model_path):
             print('\n\nMODEL LOADED')
             self.a2c.load_state_dict(torch.load(self.model_path, map_location=self.device))
+            self.a2c.reset_hidden_states()
 
         if os.path.isfile(self.optim_path):
             print('\n\nOPTIMIZER LOADED')
@@ -98,10 +103,10 @@ class PPO:
 
         for epoch in range(self.epochs):
             for sample in data:
-                states_batch, actions_batch, values_batch, rewards_batch, \
+                lstm_hidden_batch, states_batch, actions_batch, values_batch, rewards_batch, \
                     dones_batch, old_action_log_probs_batch, adv_targ = sample
 
-                values, action_log_probs, entropy = self.evaluate(states_batch, actions_batch)
+                values, action_log_probs, entropy = self.evaluate(lstm_hidden_batch, states_batch, actions_batch)
 
                 ratio = torch.exp(action_log_probs - old_action_log_probs_batch.detach())
                 surr1 = ratio * adv_targ.detach()
@@ -144,14 +149,15 @@ class PPO:
             rewards_batch = self.rewards[:-1].view(-1, 1)[indices]
             dones_batch = self.dones[:-1].view(-1,1)[indices]
             old_action_log_probs_batch = self.log_prob_actions[:-1].view(-1, 1)[indices]
+            lstm_hidden_batch = self.lstm_hidden[:-1].view(-1, 1, mini_batch_size, self.lstm_hidden.size(-1))[indices]
 
             adv_targ = advantages.view(-1,1)[indices]
 
-            yield states_batch, actions_batch, values_batch, rewards_batch, \
+            yield lstm_hidden_batch, states_batch, actions_batch, values_batch, rewards_batch, \
                 dones_batch, old_action_log_probs_batch, adv_targ
 
-    def evaluate(self, states_batch, actions_batch):
-        actor_output, critic_output = self.a2c(states_batch)
+    def evaluate(self, lstm_hidden_batch, states_batch, actions_batch):
+        actor_output, critic_output, lstm_hidden = self.a2c(states_batch, lstm_hidden_batch)
         
         actor_output = f.softmax(actor_output, dim = -1)
 
@@ -168,6 +174,7 @@ class PPO:
         self.values[0].copy_(self.values[-1])
         self.log_prob_actions[0].copy_(self.log_prob_actions[-1])
         self.dones[0].copy_(self.dones[-1])
+        self.lstm_hidden[0].copy_(self.lstm_hidden[-1])
 
         
 

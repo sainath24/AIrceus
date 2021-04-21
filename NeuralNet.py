@@ -1,23 +1,56 @@
 import torch
+from torch._C import device
 import torch.nn as nn
 
 class NeuralNet(nn.Module):
     def __init__(self, state_size, action_size, hidden_size):
         super(NeuralNet, self).__init__()
+        self.state_size = state_size
+        self.hidden_size = hidden_size
+        self.action_size = action_size
+
+        self.lstm = nn.LSTM(state_size, hidden_size)
+
         self.actor = nn.Sequential(
-            nn.Linear(state_size, hidden_size), nn.Tanh(),
+            nn.Linear(hidden_size, hidden_size), nn.Tanh(),
             nn.Linear(hidden_size, hidden_size), nn.Tanh(),
             nn.Linear(hidden_size, action_size)
         )
 
         self.critic = nn.Sequential(
-            nn.Linear(state_size, hidden_size), nn.Tanh(),
+            nn.Linear(hidden_size, hidden_size), nn.Tanh(),
             nn.Linear(hidden_size, hidden_size), nn.Tanh(),
             nn.Linear(hidden_size, 1)
         )
 
-    def forward(self, input):
-        actor_output = self.actor(input)
-        critic_output = self.critic(input)
+        self.lstm_hidden = (torch.zeros(1,1,hidden_size), torch.zeros(1,1,hidden_size))
 
-        return actor_output, critic_output
+    def reset_lstm_hidden_states(self):
+        self.lstm_hidden = (torch.zeros(1,1,self.hidden_size), torch.zeros(1,1,self.hidden_size))
+
+
+    def forward(self, nn_input, lstm_hidden = None):
+        # print('\nNN INPUT SIZE BEFORE CONVERSION: ', nn_input.size())
+        # nn_input = nn_input.view(1,1,self.state_size)
+        nn_input = nn_input.unsqueeze(0)
+        # print('\nSIZE OF INPUT: ', nn_input.size())
+        if lstm_hidden == None:
+            output, self.lstm_hidden = self.lstm(nn_input, self.lstm_hidden)
+            # print('\nLSTM HIDDEN LEN: ',len(self.lstm_hidden))
+            # print('\nLSTM HIDDEN SIZE: ', self.lstm_hidden[0].size())
+        else:
+            # print('\nUPDATE LSTM BEOFRE UNBIND: ', lstm_hidden.size())
+            lstm_hidden = torch.unbind(lstm_hidden)
+            # print('\nLEN OF UPDATE LSTM AFTER UNBIND: ', len(lstm_hidden))
+            # print('\nUPDATE LSTM AFTER UNBIND: ', lstm_hidden[0].size(), lstm_hidden[1].size())
+            output, _ = self.lstm(nn_input, lstm_hidden)
+        
+        # print('\nLSTM OUTPUT: ', output.size())
+        output = output.squeeze()
+        # print('\nNN INPUT: ', output.size())
+
+
+        actor_output = self.actor(output)
+        critic_output = self.critic(output)
+
+        return actor_output, critic_output, self.lstm_hidden
