@@ -5,9 +5,18 @@ class Translator:
         self.for_websocket = for_websocket
 
     def get_switch_name(self, pokemon_list, position):
-        name = pokemon_list[position].name
+        counter = 0
+        for i in range(len(pokemon_list)):
+            if pokemon_list[i].active:
+                continue
+            if counter == position:
+                counter = i
+                break
+            counter+=1
+        name = pokemon_list[counter].name
         name = name.split(',')[0].lower()
         name = name.encode("ascii", "ignore").decode()
+        logging.warning('Switch pokemon: ' + str(position) + ' pokemon_list: ' + str([x.get_dict() for x in pokemon_list]))
 
         return name
 
