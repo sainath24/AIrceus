@@ -10,6 +10,7 @@ import state_tools
 import logging
 import reward_tools
 import wandb
+import reward_state_tools
 
 
 class Brain:
@@ -71,7 +72,8 @@ class Brain:
 
         if self.train:
             if step > 0:
-                self.compute_rewards(state, step-1, game)
+                reward_state = reward_state_tools.get_state(game, self.player_identifier)
+                self.compute_rewards(reward_state, step-1, game)
             self.update_memory(lstm_hidden_to_insert, action, actor_probs, critic_values, state, step)
             
                 # TODO: COMPUTE REWARDS AND APPEND AT STEP -1
@@ -98,7 +100,8 @@ class Brain:
         # if self.train and (step + 1) % self.batch_size != 0:
         if step>0:
             self.algo.insert_done(torch.tensor(1.0, dtype=torch.float, device=self.device), step-1)
-            self.compute_rewards(state, step -1, game)
+            reward_state = reward_state_tools.get_state(game, self.player_identifier)
+            self.compute_rewards(reward_state, step -1, game)
 
         self.update(step)
 

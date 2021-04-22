@@ -16,7 +16,7 @@ class Translator:
         name = pokemon_list[counter].name
         name = name.split(',')[0].lower()
         name = name.encode("ascii", "ignore").decode()
-        logging.warning('Switch pokemon: ' + str(position) + ' pokemon_list: ' + str([x.get_dict() for x in pokemon_list]))
+        # logging.warning('Switch pokemon: ' + str(position) + ' pokemon_list: ' + str([x.get_dict() for x in pokemon_list]))
 
         return name
 
