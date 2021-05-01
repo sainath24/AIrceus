@@ -23,14 +23,23 @@ def get_reward(new_state, game):
 
     reward = ((agent_weight*agent_sum) - (enemy_weight*enemy_sum)).item()
     if game.tie: # ADD BONUS
-        reward += tie_bonus
+        # reward += tie_bonus
+        reward = 0.5
+        reward = torch.clamp(torch.tensor(reward), 0.0, 1.0)
+        return reward
         # logging.debug('RECEIVE TIE BONUS')
     elif game.win == 'p1': # AGENT WON
         # logging.debug('RECEIVE WIN BONUS')
-        reward += win_bonus
+        # reward += win_bonus
+        reward = 1
+        reward = torch.clamp(torch.tensor(reward), 0.0, 1.0)
+        return reward
     elif game.win == 'p2': # AGENT LOST
         # logging.debug('RECEIVE LOSE BONUS')
-        reward += lose_bonus
+        # reward += lose_bonus
+        reward = 0
+        reward = torch.clamp(torch.tensor(reward), 0.0, 1.0)
+        return reward
     
     minimum = -int(new_state.size()[0]/2)
     maximum = int(new_state.size()[0]/2)
