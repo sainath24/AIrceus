@@ -100,12 +100,11 @@ class PPO:
         advantages = self.returns[:-1] - self.values[:-1]
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-5)
 
-        data = self.data_generator(advantages)
-
         total_value_loss = 0.0
         total_policy_loss = 0.0
 
         for epoch in range(self.epochs):
+            data = self.data_generator(advantages)
             for sample in data:
                 lstm_hidden_batch, states_batch, actions_batch, values_batch, rewards_batch, \
                     dones_batch, old_action_log_probs_batch, adv_targ = sample
