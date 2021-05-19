@@ -133,12 +133,12 @@ class PPO:
         total_policy_loss /= num_updates
         total_value_loss /= num_updates
 
-        logging.info('MODEL UPDATED, policy_loss: ' + str(total_policy_loss) + ' value_loss: ' + str(total_value_loss))
+        logging.info('MODEL UPDATED, policy_loss: ' + str(-total_policy_loss) + ' value_loss: ' + str(total_value_loss))
 
         self.post_update()
         self.checkpoint()
 
-        return total_policy_loss, total_value_loss
+        return -total_policy_loss, total_value_loss
 
     def data_generator(self, advantages):
         mini_batch_size = self.batch_size // self.num_mini_batches
@@ -184,6 +184,8 @@ class PPO:
         # self.lstm_hidden[0].copy_(self.lstm_hidden[-1])
         self.hx[0].copy_(self.hx[-1])
         self.cx[0].copy_(self.cx[-1])
+
+        
 
         
 

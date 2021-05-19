@@ -46,7 +46,7 @@ class NeuralNet(nn.Module):
             # print('\nLEN OF UPDATE LSTM AFTER UNBIND: ', len(lstm_hidden))
             # print('\nUPDATE LSTM AFTER UNBIND: ', lstm_hidden[0].size(), lstm_hidden[1].size())
             # lstm_hidden = [x.unbind() for x in lstm_hidden]
-            output, _ = self.lstm(nn_input, lstm_hidden)
+            output, hidden = self.lstm(nn_input, lstm_hidden)
         
         # print('\nLSTM OUTPUT: ', output.size())
         output = output.squeeze()

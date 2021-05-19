@@ -247,6 +247,7 @@ def generate_state(pokemon_list, enemy_pokemon_list, agent_base, enemy_base):
     state = torch.cat((active_pokemon_state, active_enemy_pokemon_state, inactive_team_state)) # SHOULD BE 157
 
     # print('\nSTATE LENGTH: ', state.size())
+    # print('\nSTATE: ', state)
 
     return state
     
