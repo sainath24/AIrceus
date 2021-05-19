@@ -19,6 +19,7 @@ class Brain:
         self.train = train 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.batch_size = config['batch_size']
+        self.episode_reward = 0.0
 
         self.algo = None
         if config['algorithm'] == 'PPO':
@@ -43,6 +44,7 @@ class Brain:
         reward = reward_tools.get_reward(state, game)
         if config['use_wandb']:
             wandb.log({'rewards': reward})
+        self.episode_reward += reward
         self.algo.insert_reward(reward, step)
         
 
@@ -56,19 +58,20 @@ class Brain:
         # logging.debug('ACTION PROBS BEFORE MASK: ' + str(self.player_identifier) + ' ' + str(actor_values))
         
         # INVALID ACTION MASKING
+        actor_values_clone = torch.clone(actor_values)
         for i in range(len(invalid_actions)):
             if invalid_actions[i] == 1.0 or (must_switch and i < 4): # ACTION IS INVALID
-                actor_values[i] = -1e8
+                actor_values_clone[i] = -1e8
         
         # logging.debug('INVALID ACTIONS MASK: ' + str(self.player_identifier) + ' ' + str(invalid_actions))
-        actor_values = f.softmax(actor_values, dim = -1)
+        actor_values_clone = f.softmax(actor_values_clone, dim = -1)
         # logging.debug('ACTION PROBS AFTER MASK: ' + str(self.player_identifier) + ' ' + str(actor_values))
         # if self.train:
-        # print('action probabilities: ', actor_values)
-        actor_probs = Categorical(actor_values)
+        # print('action probabilities: ', actor_values_clone)
+        actor_probs = Categorical(actor_values_clone)
         action = actor_probs.sample()
         # else:
-        # action = torch.argmax(actor_values)
+        # action = torch.argmax(actor_values_clone)
 
         if self.train:
             if step > 0:
@@ -102,6 +105,10 @@ class Brain:
             self.algo.insert_done(torch.tensor(1.0, dtype=torch.float, device=self.device), step-1)
             reward_state = reward_state_tools.get_state(game, self.player_identifier)
             self.compute_rewards(reward_state, step -1, game)
+        
+        if config['use_wandb']:
+            wandb.log({'episode_rewards': self.episode_reward})
+        self.episode_reward = 0
 
         self.update(step)
 
