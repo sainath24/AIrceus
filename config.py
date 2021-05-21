@@ -2,21 +2,24 @@ config = {
     'model': 'model.pth',
     'optim': 'optim.pth',
     'log': 'game.log',
-    'optim_lr': 1e-3,
-    'episodes': 1000,
+    'optim_lr': 1e-5,
+    'simulations': 2, # NUMBER OF PARALLEL DATA COLLECTORS
+    'episodes': 10, # TOTAL NUMBER OF EPISODES THAT WILL BE EQUALLY SPLIT BETWEEN PARALLEL SIMULTIONS
     'state_size': 157,#840,
     'action_size': 9,#10,
-    'hidden_size':128,
+    'hidden_size': 128,
+    'lstm_size': 2,
     'algorithm':'PPO',
-    'batch_size': 200,
-    'num_mini_batches': 10,
-    'epochs': 5,
+    'batch_size': 32,#201,
+    # 'num_mini_batches': 5,
+    'epochs': 10,
     'clip_param': 0.2,
     'value_loss_coef': 1,
-    'entropy_coef' : 1e-1,
+    'entropy_coef' : 1e-3,
     'max_grad_norm' : 100.0,
     'gamma': 0.99,
-    'trainer_update_frequency': 10, # IN EPISODES
+    'trainer_update_frequency': 20, # IN EPISODES PER SIMULATION PROCESS
+    'agent_update_frequency': 2, # IN EPISODES PER SIMULATION PROCESS
     'use_wandb': False
     ## TODO: ADD REST OF THE CONFIG AND SET PARAMS
 }
