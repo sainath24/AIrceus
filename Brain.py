@@ -91,5 +91,5 @@ class Brain:
         
         # if config['use_wandb']:
         #     wandb.log({'episode_rewards': self.episode_reward})
-        self.episode_reward = 0
+        # self.episode_reward = 0
 

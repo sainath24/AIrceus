@@ -13,6 +13,7 @@ from torch.distributions.categorical import Categorical
 from tqdm import tqdm
 import sys
 
+
 class CentralUpdater:
     def __init__(self, simulations) -> None:
         self.simulations = simulations
@@ -49,8 +50,14 @@ class CentralUpdater:
         self.optimiser = optim.Adam(self.model.parameters(), lr=config['optim_lr'])
 
         self.model.to(self.device)
-        if config['use_wandb']:
-            wandb.watch(self.model)
+
+        
+        # if config['use_wandb']:
+        #     wandb.init(project = 'AIrceus_V2.0') 
+  
+        # if config['use_wandb']:
+        #     wandb.watch(self.model)
+
         
         self.load()
     
@@ -62,6 +69,9 @@ class CentralUpdater:
             self.run()
 
     def run(self):
+        if config['use_wandb']:
+            wandb.init(project = 'AIrceus_V2.0') 
+
         no_updates = (config['episodes']//self.simulations)//config['agent_update_frequency']
         for i in tqdm(range(no_updates), desc='UPDATES'):
             self.wait_for_data() # BLOCKS UNTIL ALL SIMULATIONS HAVE SENT DATA

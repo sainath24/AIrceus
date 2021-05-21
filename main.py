@@ -15,8 +15,10 @@ import time
 from copy import deepcopy
 
 import wandb
-if config['use_wandb']:
-    wandb.init(project = 'AIrceus_V2.0')
+# import os
+# os.environ["WANDB_RUN_GROUP"] = "experiment-" + wandb.util.generate_id()
+# if config['use_wandb']:
+#     wandb.init(project = 'AIrceus_V2.0')
 
 import logging
 logging.basicConfig(filename = config['log'], level=logging.DEBUG)
@@ -52,6 +54,8 @@ class BattleProcess:
         # self.run()
 
     def run(self):
+        if config['use_wandb']:
+            wandb.init(project = 'AIrceus_V2.0')
         for i in tqdm(range(self.episodes), desc = f'EPISODES_{self.pid}'): # RUN FOR SPECIFIED NUMBER OF EPISODES
             self.game.reset()
             self.reset_queue()
@@ -71,6 +75,8 @@ class BattleProcess:
             
             if config['use_wandb']:
                 wandb.log({f'episode_{self.pid}': i+1})
+                wandb.log({f'episode_reward_{self.pid}': self.ingestor.agent.episode_reward})
+            self.ingestor.agent.episode_reward = 0
         self.pipe.close()
 
 if __name__ == "__main__":
@@ -82,7 +88,7 @@ if __name__ == "__main__":
     trainer_update_frequency = config['trainer_update_frequency']
 
     updater = CentralUpdater(simulations)
-    
+
     ## CREATE SIMULATION PROCESSES
     battle_procs = []
     for i in range(simulations):
