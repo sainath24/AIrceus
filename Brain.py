@@ -7,7 +7,7 @@ from torch.distributions import Categorical
 from PPO import PPO
 from config import config
 import state_tools
-import logging
+# import logging
 import reward_tools
 import wandb
 import reward_state_tools
@@ -23,7 +23,7 @@ class Brain:
 
         self.algo = None
         if config['algorithm'] == 'PPO':
-            self.algo = PPO(config['batch_size'], config['num_mini_batches'], config['epochs'], \
+            self.algo = PPO(config['batch_size'], config['epochs'], \
                 config['state_size'], config['action_size'], config['hidden_size'], config['clip_param'],self.device)
 
 
@@ -37,10 +37,9 @@ class Brain:
         self.algo.insert_done(torch.tensor(0.0, dtype=torch.float, device=self.device), step)
         self.algo.insert_lstm_hidden(lstm_hidden, step)
 
-        self.update(step)
+        # self.update(step)
 
     def compute_rewards(self, state, step, game):
-        # TODO: COMPUTE ACTUAL REWARDS
         reward = reward_tools.get_reward(state, game)
         if config['use_wandb']:
             wandb.log({'rewards': reward})
@@ -72,14 +71,11 @@ class Brain:
         action = actor_probs.sample()
         # else:
         # action = torch.argmax(actor_values_clone)
-
         if self.train:
-            if step > 0:
-                reward_state = reward_state_tools.get_state(game, self.player_identifier)
-                self.compute_rewards(reward_state, step-1, game)
+            # if step > 0:
+            reward_state = reward_state_tools.get_state(game, self.player_identifier)
+            self.compute_rewards(reward_state, step-1, game)
             self.update_memory(lstm_hidden_to_insert, action, actor_probs, critic_values, state, step)
-            
-                # TODO: COMPUTE REWARDS AND APPEND AT STEP -1
         
         return action.item()
 
@@ -90,25 +86,23 @@ class Brain:
 
         return state, invalid_actions
 
-    def update(self, step):
-        if (step + 1) % self.batch_size == 0: # TIME TO UPDATE
-            policy_loss, value_loss = self.algo.update()
-            if config['use_wandb']:
-                wandb.log({'policy_loss': policy_loss, 'value_loss': value_loss})
-            # TODO: wandb log these
+    # def update(self, step):
+    #     if (step + 1) % self.batch_size == 0: # TIME TO UPDATE
+    #         policy_loss, value_loss = self.algo.update()
+    #         if config['use_wandb']:
+    #             wandb.log({'policy_loss': policy_loss, 'value_loss': value_loss})
 
     def game_over(self, game, step):
-        # TODO: COMPUTE LAST REWARDS AND APPEND AT STEP -1
         state, invalid_actions = self.create_state(game)
         # if self.train and (step + 1) % self.batch_size != 0:
-        if step>0:
-            self.algo.insert_done(torch.tensor(1.0, dtype=torch.float, device=self.device), step-1)
-            reward_state = reward_state_tools.get_state(game, self.player_identifier)
-            self.compute_rewards(reward_state, step -1, game)
+        # if step>0:
+        self.algo.insert_done(torch.tensor(1.0, dtype=torch.float, device=self.device), step-1)
+        reward_state = reward_state_tools.get_state(game, self.player_identifier)
+        self.compute_rewards(reward_state, step -1, game)
         
         if config['use_wandb']:
             wandb.log({'episode_rewards': self.episode_reward})
         self.episode_reward = 0
 
-        self.update(step)
+        # self.update(step)
 

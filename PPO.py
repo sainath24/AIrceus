@@ -6,74 +6,95 @@ import torch.nn.functional as f
 from NeuralNet import NeuralNet
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 import wandb
-import logging
+# import logging
 
 import os
 from config import config
 
 class PPO:
-    def __init__(self, batch_size, number_mini_batches, epochs, state_size, action_size, hidden_size, clip_param, device) -> None:
+    def __init__(self, batch_size, epochs, state_size, action_size, hidden_size, clip_param, device) -> None:
         self.batch_size = batch_size
-        self.num_mini_batches = number_mini_batches
+        # self.num_mini_batches = number_mini_batches
         self.epochs = epochs
         self.state_size = state_size
         self.action_size = action_size
         self.hidden_size = hidden_size
+        self.lstm_size = config['lstm_size']
         self.clip_param = clip_param
         self.device = device
+        
 
         self.model_path = config['model']
         self.optim_path = config['optim']
         self.max_grad_norm = config['max_grad_norm']
 
 
-        self.states = torch.zeros(self.batch_size, self.state_size, device=self.device)
-        self.actions = torch.zeros(self.batch_size, 1, device=self.device)
-        self.rewards = torch.zeros(self.batch_size, 1, device=self.device)
-        self.values = torch.zeros(self.batch_size, 1, device=self.device)
-        self.returns = torch.zeros(self.batch_size, 1, device= self.device)
-        self.log_prob_actions = torch.zeros(self.batch_size,1, device=self.device)
-        self.dones = torch.zeros(self.batch_size, 1, device=self.device)
-        # self.lstm_hidden = torch.zeros(self.batch_size, 2, 1 ,1, self.hidden_size, device = self.device)
-        self.hx = torch.zeros(self.batch_size,self.hidden_size, device = self.device)
-        self.cx = torch.zeros(self.batch_size,self.hidden_size, device = self.device)
+        # self.states = torch.zeros(self.batch_size, self.state_size, device=self.device)
+        # self.actions = torch.zeros(self.batch_size, 1, device=self.device)
+        # self.rewards = torch.zeros(self.batch_size, 1, device=self.device)
+        # self.values = torch.zeros(self.batch_size, 1, device=self.device)
+        # self.returns = torch.zeros(self.batch_size, 1, device= self.device)
+        # self.log_prob_actions = torch.zeros(self.batch_size,1, device=self.device)
+        # self.dones = torch.zeros(self.batch_size, 1, device=self.device)
+        # # self.lstm_hidden = torch.zeros(self.batch_size, 2, 1 ,1, self.hidden_size, device = self.device)
+        # self.hx = torch.zeros(self.batch_size,self.hidden_size, device = self.device)
+        # self.cx = torch.zeros(self.batch_size,self.hidden_size, device = self.device)
 
-        self.a2c = NeuralNet(self.state_size, self.action_size, self.hidden_size, self.device)
+        self.states = []
+        self.actions = []
+        self.rewards = []
+        self.values = []
+        self.returns = []
+        self.log_prob_actions = []
+        self.dones = []
+        # self.lstm_hidden = torch.zeros(self.batch_size, 2, 1 ,1, self.hidden_size, device = self.device)
+        self.hx = []
+        self.cx = []
+
+        self.a2c = NeuralNet(self.state_size, self.action_size, self.hidden_size, self.lstm_size, self.device)
         self.optimiser = optim.Adam(self.a2c.parameters(), lr=config['optim_lr'])
 
-        self.value_loss_coef = config['value_loss_coef']
-        self.entropy_coef = config['entropy_coef']
-        self.max_grad_norm = config['max_grad_norm'] ## NOT USED
+        # self.value_loss_coef = config['value_loss_coef']
+        # self.entropy_coef = config['entropy_coef']
+        # self.max_grad_norm = config['max_grad_norm'] ## NOT USED
         self.gamma = config['gamma']
         
         self.a2c.to(self.device)
-        if config['use_wandb']:
-            wandb.watch(self.a2c)
+        # if config['use_wandb']:
+        #     wandb.watch(self.a2c)
         
         self.load()
 
     def insert_state(self, state, step):
-        self.states[step].copy_(state)
+        # self.states[step].copy_(state)
+        self.states.append(state.detach())
 
     def insert_action(self, action, step):
-        self.actions[step].copy_(action)
+        # self.actions[step].copy_(action)
+        self.actions.append(action.detach())
 
     def insert_reward(self, reward, step):
-        self.rewards[step].copy_(reward)
+        # self.rewards[step].copy_(reward)
+        self.rewards.append(reward.detach())
 
     def insert_value(self, value, step):
-        self.values[step].copy_(value)
+        # self.values[step].copy_(value)
+        self.values.append(value.detach())
 
     def insert_log_prob_action(self, prob, step):
-        self.log_prob_actions[step].copy_(prob)
+        # self.log_prob_actions[step].copy_(prob)
+        self.log_prob_actions.append(prob.detach())
 
     def insert_done(self, done, step):
-        self.dones[step].copy_(done)
+        # self.dones[step].copy_(done)
+        self.dones.append(done.detach())
     
     def insert_lstm_hidden(self, lstm_hidden, step):
-        self.hx[step].copy_(lstm_hidden[0].detach().squeeze())
-        self.cx[step].copy_(lstm_hidden[1].detach().squeeze())
+        # self.hx[step].copy_(lstm_hidden[0].detach().squeeze())
+        # self.cx[step].copy_(lstm_hidden[1].detach().squeeze())
         # self.lstm_hidden[step].copy_(lstm_hidden)
+        self.hx.append(lstm_hidden[0].detach())
+        self.cx.append(lstm_hidden[1].detach())
     
     def load(self):
         if os.path.isfile(self.model_path):
@@ -85,105 +106,150 @@ class PPO:
             print('\n\nOPTIMIZER LOADED')
             self.optimiser.load_state_dict(torch.load(self.optim_path, map_location=self.device))
     
-    def checkpoint(self):
-        torch.save(self.a2c.state_dict(), self.model_path)
-        torch.save(self.optimiser.state_dict(), self.optim_path)
+    # def checkpoint(self):
+    #     torch.save(self.a2c.state_dict(), self.model_path)
+    #     torch.save(self.optimiser.state_dict(), self.optim_path)
 
     def calculate_returns(self):
         # TODO: IMPLEMENT GAE
-        self.returns[-1] = self.values[-1]
-        for i in reversed(range(self.rewards.size(0) - 1)):
-            self.returns[i] = self.rewards[i] + (1 - self.dones[i]) * self.gamma * self.returns[i+1] 
+        # self.returns[-1] = self.values[-1]
+        # for i in reversed(range(self.rewards.size(0) - 1)):
+        #     self.returns[i] = self.rewards[i] + (1 - self.dones[i]) * self.gamma * self.returns[i+1] 
 
-    def update(self):
+        self.returns = torch.zeros(len(self.rewards))
+        self.returns[-1] = self.rewards[-1]
+        for i in reversed(range(len(self.rewards) - 2)):
+            self.returns[i] = self.rewards[i] + (1 - self.dones[i]) * self.gamma * self.returns[i+1]
+        # self.returns = torch.tensor(self.returns, dtype=torch.float)
+
+    def send_data(self, pipe):
+        # CALCULATE RETURNS
         self.calculate_returns()
-        advantages = self.returns[:-1] - self.values[:-1]
-        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-5)
+        # STACK ALL TENSORS BEFORE SENDING
+        # print('number of states',len(self.states))
+        self.states = torch.stack((self.states))
+        self.actions = torch.stack((self.actions))
+        self.values = torch.stack((self.values))
+        self.log_prob_actions = torch.stack((self.log_prob_actions))
+        self.dones = torch.stack((self.dones))
+        self.hx = torch.stack((self.hx))
+        self.cx = torch.stack((self.cx))
 
-        total_value_loss = 0.0
-        total_policy_loss = 0.0
+        # PUT DATA IN A DICT TO SEND
+        data = {
+            'states': self.states,
+            'actions': self.actions,
+            'values': self.values,
+            'log_prob_actions': self.log_prob_actions,
+            'dones': self.dones,
+            'returns': self.returns,
+            'hx': self.hx,
+            'cx': self.cx
+        }
 
-        for epoch in range(self.epochs):
-            data = self.data_generator(advantages)
-            for sample in data:
-                lstm_hidden_batch, states_batch, actions_batch, values_batch, rewards_batch, \
-                    dones_batch, old_action_log_probs_batch, adv_targ = sample
-
-                values, action_log_probs, entropy = self.evaluate(lstm_hidden_batch, states_batch, actions_batch)
-
-                ratio = torch.exp(action_log_probs - old_action_log_probs_batch.detach())
-                surr1 = ratio * adv_targ.detach()
-                surr2 = torch.clamp(ratio, 1 - self.clip_param, 1 + self.clip_param) * adv_targ.detach()
-
-                policy_loss = -torch.min(surr1, surr2).mean() 
-
-                value_loss = 0.5 * (rewards_batch - values).pow(2).mean()
-
-                self.optimiser.zero_grad()
-                (value_loss * self.value_loss_coef + policy_loss - entropy * self.entropy_coef).backward()
-
-                nn.utils.clip_grad_norm_(self.a2c.parameters(), self.max_grad_norm)
-                self.optimiser.step()
-
-                total_value_loss += value_loss.item()
-                total_policy_loss += policy_loss.item()
-
-        num_updates = self.epochs * self.num_mini_batches
-        
-        total_policy_loss /= num_updates
-        total_value_loss /= num_updates
-
-        logging.info('MODEL UPDATED, policy_loss: ' + str(-total_policy_loss) + ' value_loss: ' + str(total_value_loss))
+        pipe.send(data)
+        del data
 
         self.post_update()
-        self.checkpoint()
 
-        return -total_policy_loss, total_value_loss
+    # def update(self):
+    #     self.calculate_returns()
+    #     advantages = self.returns[:-1] - self.values[:-1]
+    #     advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-5)
 
-    def data_generator(self, advantages):
-        mini_batch_size = self.batch_size // self.num_mini_batches
+    #     total_value_loss = 0.0
+    #     total_policy_loss = 0.0
 
-        sampler = BatchSampler(SubsetRandomSampler(range(self.batch_size - 1)), mini_batch_size, drop_last=True)
+    #     for epoch in range(self.epochs):
+    #         data = self.data_generator(advantages)
+    #         for sample in data:
+    #             lstm_hidden_batch, states_batch, actions_batch, values_batch, rewards_batch, \
+    #                 dones_batch, old_action_log_probs_batch, adv_targ = sample
 
-        for indices in sampler:
-            states_batch = self.states[:-1].view(-1, self.state_size)[indices]
-            actions_batch = self.actions[:-1].view(-1, 1)[indices]
-            values_batch = self.values[:-1].view(-1, 1)[indices]
-            rewards_batch = self.rewards[:-1].view(-1, 1)[indices]
-            dones_batch = self.dones[:-1].view(-1,1)[indices]
-            old_action_log_probs_batch = self.log_prob_actions[:-1].view(-1, 1)[indices]
-            # lstm_hidden_batch = self.lstm_hidden[:-1].view(-1, 1, mini_batch_size, self.lstm_hidden.size(-1))[indices]
-            # lstm_hidden_batch = self.lstm_hidden[:-1][indices]
-            hx_batch = self.hx[:-1].view(-1, self.hidden_size)[indices].unsqueeze(0)
-            cx_batch = self.cx[:-1].view(-1, self.hidden_size)[indices].unsqueeze(0)
-            lstm_hidden_batch = (hx_batch, cx_batch)
+    #             values, action_log_probs, entropy = self.evaluate(lstm_hidden_batch, states_batch, actions_batch)
 
-            adv_targ = advantages.view(-1,1)[indices]
+    #             ratio = torch.exp(action_log_probs - old_action_log_probs_batch.detach())
+    #             surr1 = ratio * adv_targ.detach()
+    #             surr2 = torch.clamp(ratio, 1 - self.clip_param, 1 + self.clip_param) * adv_targ.detach()
 
-            yield lstm_hidden_batch, states_batch, actions_batch, values_batch, rewards_batch, \
-                dones_batch, old_action_log_probs_batch, adv_targ
+    #             policy_loss = -torch.min(surr1, surr2).mean() 
 
-    def evaluate(self, lstm_hidden_batch, states_batch, actions_batch):
-        actor_output, critic_output, lstm_hidden = self.a2c(states_batch, lstm_hidden_batch)
+    #             value_loss = 0.5 * (rewards_batch - values).pow(2).mean()
+
+    #             self.optimiser.zero_grad()
+    #             (value_loss * self.value_loss_coef + policy_loss - entropy * self.entropy_coef).backward()
+
+    #             nn.utils.clip_grad_norm_(self.a2c.parameters(), self.max_grad_norm)
+    #             self.optimiser.step()
+
+    #             total_value_loss += value_loss.item()
+    #             total_policy_loss += policy_loss.item()
+
+    #     num_updates = self.epochs * self.num_mini_batches
         
-        actor_output = f.softmax(actor_output, dim = -1)
+    #     total_policy_loss /= num_updates
+    #     total_value_loss /= num_updates
 
-        actor_probs = Categorical(actor_output)
-        action_log_probs = actor_probs.log_prob(actions_batch)
-        entropy = actor_probs.entropy().mean()
+    #     logging.info('MODEL UPDATED, policy_loss: ' + str(-total_policy_loss) + ' value_loss: ' + str(total_value_loss))
 
-        return critic_output, action_log_probs, entropy
+    #     self.post_update()
+    #     self.checkpoint()
+
+    #     return -total_policy_loss, total_value_loss
+
+    # def data_generator(self, advantages):
+    #     mini_batch_size = self.batch_size // self.num_mini_batches
+
+    #     sampler = BatchSampler(SubsetRandomSampler(range(self.batch_size - 1)), mini_batch_size, drop_last=True)
+
+    #     for indices in sampler:
+    #         states_batch = self.states[:-1].view(-1, self.state_size)[indices]
+    #         actions_batch = self.actions[:-1].view(-1, 1)[indices]
+    #         values_batch = self.values[:-1].view(-1, 1)[indices]
+    #         rewards_batch = self.rewards[:-1].view(-1, 1)[indices]
+    #         dones_batch = self.dones[:-1].view(-1,1)[indices]
+    #         old_action_log_probs_batch = self.log_prob_actions[:-1].view(-1, 1)[indices]
+    #         # lstm_hidden_batch = self.lstm_hidden[:-1].view(-1, 1, mini_batch_size, self.lstm_hidden.size(-1))[indices]
+    #         # lstm_hidden_batch = self.lstm_hidden[:-1][indices]
+    #         hx_batch = self.hx[:-1].view(-1, self.hidden_size)[indices].unsqueeze(0)
+    #         cx_batch = self.cx[:-1].view(-1, self.hidden_size)[indices].unsqueeze(0)
+    #         lstm_hidden_batch = (hx_batch, cx_batch)
+
+    #         adv_targ = advantages.view(-1,1)[indices]
+
+    #         yield lstm_hidden_batch, states_batch, actions_batch, values_batch, rewards_batch, \
+    #             dones_batch, old_action_log_probs_batch, adv_targ
+
+    # def evaluate(self, lstm_hidden_batch, states_batch, actions_batch):
+    #     actor_output, critic_output, lstm_hidden = self.a2c(states_batch, lstm_hidden_batch)
+        
+    #     actor_output = f.softmax(actor_output, dim = -1)
+
+    #     actor_probs = Categorical(actor_output)
+    #     action_log_probs = actor_probs.log_prob(actions_batch)
+    #     entropy = actor_probs.entropy().mean()
+
+    #     return critic_output, action_log_probs, entropy
     
     def post_update(self):
-        self.states[0].copy_(self.states[-1])
-        self.actions[0].copy_(self.actions[-1])
-        self.rewards[0].copy_(self.rewards[-1])
-        self.values[0].copy_(self.values[-1])
-        self.log_prob_actions[0].copy_(self.log_prob_actions[-1])
-        self.dones[0].copy_(self.dones[-1])
-        # self.lstm_hidden[0].copy_(self.lstm_hidden[-1])
-        self.hx[0].copy_(self.hx[-1])
-        self.cx[0].copy_(self.cx[-1])
+        # self.states[0].copy_(self.states[-1])
+        # self.actions[0].copy_(self.actions[-1])
+        # self.rewards[0].copy_(self.rewards[-1])
+        # self.values[0].copy_(self.values[-1])
+        # self.log_prob_actions[0].copy_(self.log_prob_actions[-1])
+        # self.dones[0].copy_(self.dones[-1])
+        # # self.lstm_hidden[0].copy_(self.lstm_hidden[-1])
+        # self.hx[0].copy_(self.hx[-1])
+        # self.cx[0].copy_(self.cx[-1])
+        self.states = []
+        self.actions = []
+        self.rewards = []
+        self.values = []
+        self.returns = []
+        self.log_prob_actions = []
+        self.dones = []
+        self.hx = []
+        self.cx = []
 
         
 

@@ -2,7 +2,8 @@ import threading
 import multiprocessing
 import json
 import ingestor_tools
-from queue import Queue
+import torch
+# from multiprocessing import Queue
 from config import config
 
 from tqdm import tqdm
@@ -25,18 +26,18 @@ class Ingestor:
             self.agent = Brain('p2', train = False) # AGENT COMES OUT AS p2 WHEN CHALLENGED BY A PLAYER
         # self.brain = brain
         self.game = game
-        self.switch_queue = Queue()
+        self.switch_queue = []
         self.step = 0
         self.episodes_finished = 0
         self.game_end = False
         self.batch_size = config['batch_size']
         if train:
             self.trainer_update_frequency = config['trainer_update_frequency']
-        self.progress_bar = tqdm(total=self.batch_size, desc='STEPS TO UPDATE')
+        # self.progress_bar = tqdm(total=self.batch_size, desc='STEPS TO UPDATE')
 
 
-    def reset_progress_bar(self):
-        self.progress_bar.reset()
+    # def reset_progress_bar(self):
+    #     self.progress_bar.reset()
         
     def set_queue(self, data_queue):
         self.data_q = data_queue
@@ -51,15 +52,15 @@ class Ingestor:
         else:
             self.run()
 
-    def increment_step(self):
-        if (self.step + 1) % self.batch_size == 0: # RESET STEP TO 1
-            self.step = 1
-            self.progress_bar.update(1)
-            self.reset_progress_bar()
-            self.progress_bar.update(1)
-        else:
-            self.step += 1
-            self.progress_bar.update(1)
+    # def increment_step(self):
+    #     if (self.step + 1) % self.batch_size == 0: # RESET STEP TO 1
+    #         self.step = 1
+    #         self.progress_bar.update(1)
+    #         self.reset_progress_bar()
+    #         self.progress_bar.update(1)
+    #     else:
+    #         self.step += 1
+    #         self.progress_bar.update(1)
             
 
 
@@ -92,9 +93,9 @@ class Ingestor:
         
         if 'forceSwitch' in json.keys(): # HAVE TO SWITCH, DONT GET ACTIVE MOVES
             if player_identifier == self.agent.player_identifier:
-                self.switch_queue.put(player_identifier)
+                self.switch_queue.append(player_identifier)
             elif self.train and self.trainer.player_identifier == player_identifier:
-                self.switch_queue.put(player_identifier)
+                self.switch_queue.append(player_identifier)
         
         return player_identifier
 
@@ -144,7 +145,7 @@ class Ingestor:
         if action!= None: 
             self.translator.write_action_queue(action)
 
-        self.increment_step()
+        # self.increment_step()
         
     
     def take_decision(self):
@@ -162,7 +163,7 @@ class Ingestor:
             trainer_action = self.translator.translate('p2', trainer_action, self.game.p2_pokemon)
             self.translator.write_action_queue(trainer_action)
         
-        self.increment_step()
+        # self.increment_step()
     
     def game_over(self, player_identifier = None, tie = False):
         if tie: # GAME IS A TIE
@@ -194,9 +195,9 @@ class Ingestor:
                 return 
             # print('JSON: ', json_data, 'hello')
             player = self.pokemon_changes(json_data)
-            if self.switch_queue.empty() == False and player == 'p2': # SOME OR ALL PLAYERS HAVE TO SWITCH
-                while not self.switch_queue.empty():
-                    player_identifier = self.switch_queue.get()
+            if len(self.switch_queue) > 0 and player == 'p2': # SOME OR ALL PLAYERS HAVE TO SWITCH
+                while len(self.switch_queue) > 0:
+                    player_identifier = self.switch_queue.pop(0)
                     self.choose_switch(player_identifier)
 
             # print(self.game.get_dict())
@@ -227,13 +228,19 @@ class Ingestor:
 
     def update_trainer_weights(self):
         self.trainer.algo.a2c.load_state_dict(self.agent.algo.a2c.state_dict())
+
+    def update_agent_weights(self, weights):
+        self.agent.algo.a2c.load_state_dict(torch.load(config['model']))
+
+    def send_data(self, pipe):
+        self.agent.algo.send_data(pipe)
             
 
     def run(self):
-        logging.warning('INGESTOR STARTING')
-        if self.train and self.episodes_finished % self.trainer_update_frequency == 0: # UPDATE TRAINER WEIGHTS
-            self.update_trainer_weights()
-            logging.info('TRAINER WEIGHTS UPDATED AFTER EPISODE: ' + str(self.episodes_finished))
+        # logging.warning('INGESTOR STARTING')
+        # if self.train and self.episodes_finished % self.trainer_update_frequency == 0: # UPDATE TRAINER WEIGHTS
+        #     self.update_trainer_weights()
+        #     logging.info('TRAINER WEIGHTS UPDATED AFTER EPISODE: ' + str(self.episodes_finished))
 
         while self.game_end == False:
             if not self.data_q.empty():
@@ -244,8 +251,8 @@ class Ingestor:
                     position = line.find('|')
                     line = line[position:]
                 # print(line)
-                if self.train:
-                    logging.info(line)
+                # if self.train:
+                #     logging.info(line)
                 self.ingest(line)
         self.episodes_finished += 1
         self.game_end = False

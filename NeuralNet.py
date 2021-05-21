@@ -3,14 +3,15 @@ from torch._C import device
 import torch.nn as nn
 
 class NeuralNet(nn.Module):
-    def __init__(self, state_size, action_size, hidden_size, device):
+    def __init__(self, state_size, action_size, hidden_size, lstm_size, device):
         super(NeuralNet, self).__init__()
         self.state_size = state_size
         self.hidden_size = hidden_size
         self.action_size = action_size
+        self.lstm_size = lstm_size
         self.device = device
 
-        self.lstm = nn.LSTM(state_size, hidden_size)
+        self.lstm = nn.LSTM(state_size, hidden_size, lstm_size)
 
         self.actor = nn.Sequential(
             nn.Linear(hidden_size, hidden_size), nn.Tanh(),
@@ -24,10 +25,10 @@ class NeuralNet(nn.Module):
             nn.Linear(hidden_size, 1)
         )
 
-        self.lstm_hidden = (torch.zeros(1,1,hidden_size, device=self.device), torch.zeros(1,1,hidden_size, device=self.device))
+        self.lstm_hidden = (torch.zeros(self.lstm_size,1,hidden_size, device=self.device), torch.zeros(self.lstm_size,1,hidden_size, device=self.device))
 
     def reset_lstm_hidden_states(self): 
-        self.lstm_hidden = (torch.zeros(1,1,self.hidden_size, device=self.device), torch.zeros(1,1,self.hidden_size, device=self.device))
+        self.lstm_hidden = (torch.zeros(self.lstm_size,1,self.hidden_size, device=self.device), torch.zeros(self.lstm_size,1,self.hidden_size, device=self.device))
 
 
     def forward(self, nn_input, lstm_hidden = None):
