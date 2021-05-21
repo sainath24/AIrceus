@@ -1,6 +1,6 @@
 import torch
 import type_multiplier
-import logging
+# import logging
 
 ACTIVE_ENEMY_POKEMON_WEIGHT = 1
 

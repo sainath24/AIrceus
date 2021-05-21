@@ -6,7 +6,6 @@ import logging
 from config import config
 from config import default_move
 from config import default_pokemon
-# logging.basicConfig(filename= config['log'], level=logging.DEBUG)
 
 def make_default_pokemon():
     pokemon = Pokemon(default_pokemon)

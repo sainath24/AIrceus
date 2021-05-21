@@ -28,6 +28,7 @@ class BattleSimulator:
 
     def write_data_q(self):
         for line in iter(self.proc.stdout.readline, ""):
+            # logging.error(line)
             self.data_q.put(line)
 
     def start(self,threaded = True):
@@ -49,7 +50,7 @@ class BattleSimulator:
         get_action_thread = threading.Thread(target=self.get_action)
         get_action_thread.setDaemon(True)
         get_action_thread.start()
-
+        
         start = '>start {"formatid":"' + self.formatid + '"}\n'
         player1 = '>player p1 {"name":"' + self.p1 + '"}\n'
         player2 = '>player p2 {"name":"' + self.p2 + '"}\n'

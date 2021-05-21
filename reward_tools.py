@@ -1,5 +1,5 @@
 import torch
-import logging
+# import logging
 
 def get_reward(new_state, game):
     # NEW STATE HAS SIZE 840, FIRST 420 is agent pokemon, next 420 is enemy pokemon

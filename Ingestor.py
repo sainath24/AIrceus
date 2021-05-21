@@ -24,20 +24,11 @@ class Ingestor:
             self.trainer = Brain('p2', train= False)
         else:
             self.agent = Brain('p2', train = False) # AGENT COMES OUT AS p2 WHEN CHALLENGED BY A PLAYER
-        # self.brain = brain
         self.game = game
         self.switch_queue = []
-        self.step = 0
-        self.episodes_finished = 0
         self.game_end = False
-        self.batch_size = config['batch_size']
         if train:
             self.trainer_update_frequency = config['trainer_update_frequency']
-        # self.progress_bar = tqdm(total=self.batch_size, desc='STEPS TO UPDATE')
-
-
-    # def reset_progress_bar(self):
-    #     self.progress_bar.reset()
         
     def set_queue(self, data_queue):
         self.data_q = data_queue
@@ -51,18 +42,7 @@ class Ingestor:
                 ingestor_thread.join() # USED TO EXIT GAME WHEN OVER
         else:
             self.run()
-
-    # def increment_step(self):
-    #     if (self.step + 1) % self.batch_size == 0: # RESET STEP TO 1
-    #         self.step = 1
-    #         self.progress_bar.update(1)
-    #         self.reset_progress_bar()
-    #         self.progress_bar.update(1)
-    #     else:
-    #         self.step += 1
-    #         self.progress_bar.update(1)
             
-
 
     def pokemon_changes(self,json): 
         # logging.info(str(json))
@@ -132,38 +112,34 @@ class Ingestor:
     def choose_switch(self, player_identifier):
         action = None
         if player_identifier == self.agent.player_identifier:
-            action = self.agent.get_action(self.game, self.step, must_switch= True)
+            action = self.agent.get_action(self.game, must_switch= True)
             if self.agent.player_identifier == 'p1':
                 action = self.translator.translate(player_identifier, action, self.game.p1_pokemon)
             elif self.agent.player_identifier == 'p2':
                 action = self.translator.translate(player_identifier, action, self.game.p2_pokemon)
         elif self.train and player_identifier == self.trainer.player_identifier:
-            action = self.trainer.get_action(self.game, self.step, must_switch= True)
+            action = self.trainer.get_action(self.game, must_switch= True)
             action = self.translator.translate(player_identifier, action, self.game.p2_pokemon)
 
         
         if action!= None: 
             self.translator.write_action_queue(action)
-
-        # self.increment_step()
         
     
     def take_decision(self):
-        agent_action = self.agent.get_action(self.game, self.step, must_switch=False)
+        agent_action = self.agent.get_action(self.game, must_switch=False)
         if self.agent.player_identifier == 'p1':
             agent_action = self.translator.translate(self.agent.player_identifier, agent_action, self.game.p1_pokemon)
         elif self.agent.player_identifier == 'p2':
             agent_action = self.translator.translate(self.agent.player_identifier, agent_action, self.game.p2_pokemon)
 
         self.translator.write_action_queue(agent_action)
-        # print('Wrote: ' + str(agent_action) + ' to action queue')
         
         if self.train:
-            trainer_action = self.trainer.get_action(self.game, self.step, must_switch=False)
+            trainer_action = self.trainer.get_action(self.game, must_switch=False)
             trainer_action = self.translator.translate('p2', trainer_action, self.game.p2_pokemon)
             self.translator.write_action_queue(trainer_action)
         
-        # self.increment_step()
     
     def game_over(self, player_identifier = None, tie = False):
         if tie: # GAME IS A TIE
@@ -174,8 +150,8 @@ class Ingestor:
             else:
                 self.game.set_win('p2')
         
-        ## CALL BRAIN GAME OVER AND PASS STEP
-        self.agent.game_over(self.game, self.step)
+        ## CALL AGENT GAME OVER
+        self.agent.game_over(self.game)
         self.translator.write_action_queue('game_over')
         self.game_end = True
 
@@ -237,10 +213,6 @@ class Ingestor:
             
 
     def run(self):
-        # logging.warning('INGESTOR STARTING')
-        # if self.train and self.episodes_finished % self.trainer_update_frequency == 0: # UPDATE TRAINER WEIGHTS
-        #     self.update_trainer_weights()
-        #     logging.info('TRAINER WEIGHTS UPDATED AFTER EPISODE: ' + str(self.episodes_finished))
 
         while self.game_end == False:
             if not self.data_q.empty():
@@ -250,13 +222,10 @@ class Ingestor:
                     # logging.warning('FOUND INVALID LINE: ', line)
                     position = line.find('|')
                     line = line[position:]
-                # print(line)
                 # if self.train:
                 #     logging.info(line)
                 self.ingest(line)
-        self.episodes_finished += 1
         self.game_end = False
-        # print('\n INGESTOR GAME OVER \n')
     
     def kill(self):
         self.game_end = True

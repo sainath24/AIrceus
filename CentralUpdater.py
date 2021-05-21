@@ -73,14 +73,14 @@ class CentralUpdater:
 
     def load(self):
         if os.path.isfile(self.model_path):
-            print('\n\nMODEL LOADED')
+            print('\nMODEL LOADED')
             self.model.load_state_dict(torch.load(self.model_path, map_location=self.device))
             self.model.reset_lstm_hidden_states()
         else: # save common model
             torch.save(self.model.state_dict(), self.model_path)
 
         if os.path.isfile(self.optim_path):
-            print('\n\nOPTIMIZER LOADED')
+            print('\nOPTIMIZER LOADED')
             self.optimiser.load_state_dict(torch.load(self.optim_path, map_location=self.device))
         else: # save common optim
             torch.save(self.optimiser.state_dict(), self.optim_path)
@@ -115,7 +115,6 @@ class CentralUpdater:
             # pipe.send(self.model.state_dict())
     
     def update(self):
-        # self.calculate_returns() # THIS SHOULD BE SENT MY SIMULATION
         advantages = self.returns - self.values
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-5)
 
@@ -163,7 +162,6 @@ class CentralUpdater:
         return -total_policy_loss, total_value_loss
 
     def data_generator(self, advantages):
-        # mini_batch_size = self.batch_size // self.num_mini_batches
         data_length = self.states.size(0)
 
         sampler = BatchSampler(SubsetRandomSampler(range(data_length)), self.batch_size, drop_last=False)
@@ -175,10 +173,7 @@ class CentralUpdater:
             returns_batch = self.returns.view(-1, 1)[indices]
             dones_batch = self.dones.view(-1,1)[indices]
             old_action_log_probs_batch = self.log_prob_actions.view(-1, 1)[indices]
-            # lstm_hidden_batch = self.lstm_hidden[:-1].view(-1, 1, mini_batch_size, self.lstm_hidden.size(-1))[indices]
-            # lstm_hidden_batch = self.lstm_hidden[:-1][indices]
-            # hx_batch = self.hx.view(-1, self.hidden_size)[indices].unsqueeze(0)
-            # cx_batch = self.cx.view(-1, self.hidden_size)[indices].unsqueeze(0)
+            
             hx_batch = torch.zeros(self.lstm_size, len(indices), self.hidden_size)
             for i in range(self.lstm_size):
                 hx_batch[i].copy_(torch.cat(([x[i] for x in self.hx[indices]])))

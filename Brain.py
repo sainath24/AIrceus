@@ -27,27 +27,25 @@ class Brain:
                 config['state_size'], config['action_size'], config['hidden_size'], config['clip_param'],self.device)
 
 
-    def update_memory(self, lstm_hidden, action, actor_probs, critic_value, state, step):
-        self.algo.insert_value(critic_value, step)
-        # if (step + 1) % self.batch_size != 0:
+    def update_memory(self, lstm_hidden, action, actor_probs, critic_value, state):
+        self.algo.insert_value(critic_value)
         log_prob_action = actor_probs.log_prob(action)
-        self.algo.insert_state(state, step)
-        self.algo.insert_action(action, step)
-        self.algo.insert_log_prob_action(log_prob_action, step)
-        self.algo.insert_done(torch.tensor(0.0, dtype=torch.float, device=self.device), step)
-        self.algo.insert_lstm_hidden(lstm_hidden, step)
+        self.algo.insert_state(state)
+        self.algo.insert_action(action)
+        self.algo.insert_log_prob_action(log_prob_action)
+        self.algo.insert_done(torch.tensor(0.0, dtype=torch.float, device=self.device))
+        self.algo.insert_lstm_hidden(lstm_hidden)
 
-        # self.update(step)
 
-    def compute_rewards(self, state, step, game):
+    def compute_rewards(self, state, game):
         reward = reward_tools.get_reward(state, game)
-        if config['use_wandb']:
-            wandb.log({'rewards': reward})
+        # if config['use_wandb']:
+        #     wandb.log({'rewards': reward})
         self.episode_reward += reward
-        self.algo.insert_reward(reward, step)
+        self.algo.insert_reward(reward)
         
 
-    def get_action(self, game, step, must_switch = False):
+    def get_action(self, game, must_switch = False):
         state, invalid_actions = self.create_state(game)
         # print('\nSTATE LENGTH: ', state.size())
         # print('\nSTATE: ', state)
@@ -72,10 +70,9 @@ class Brain:
         # else:
         # action = torch.argmax(actor_values_clone)
         if self.train:
-            # if step > 0:
             reward_state = reward_state_tools.get_state(game, self.player_identifier)
-            self.compute_rewards(reward_state, step-1, game)
-            self.update_memory(lstm_hidden_to_insert, action, actor_probs, critic_values, state, step)
+            self.compute_rewards(reward_state, game)
+            self.update_memory(lstm_hidden_to_insert, action, actor_probs, critic_values, state)
         
         return action.item()
 
@@ -86,23 +83,13 @@ class Brain:
 
         return state, invalid_actions
 
-    # def update(self, step):
-    #     if (step + 1) % self.batch_size == 0: # TIME TO UPDATE
-    #         policy_loss, value_loss = self.algo.update()
-    #         if config['use_wandb']:
-    #             wandb.log({'policy_loss': policy_loss, 'value_loss': value_loss})
-
-    def game_over(self, game, step):
+    def game_over(self, game):
         state, invalid_actions = self.create_state(game)
-        # if self.train and (step + 1) % self.batch_size != 0:
-        # if step>0:
-        self.algo.insert_done(torch.tensor(1.0, dtype=torch.float, device=self.device), step-1)
+        self.algo.insert_done(torch.tensor(1.0, dtype=torch.float, device=self.device))
         reward_state = reward_state_tools.get_state(game, self.player_identifier)
-        self.compute_rewards(reward_state, step -1, game)
+        self.compute_rewards(reward_state, game)
         
-        if config['use_wandb']:
-            wandb.log({'episode_rewards': self.episode_reward})
+        # if config['use_wandb']:
+        #     wandb.log({'episode_rewards': self.episode_reward})
         self.episode_reward = 0
-
-        # self.update(step)
 
