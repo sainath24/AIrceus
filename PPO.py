@@ -84,7 +84,7 @@ class PPO:
         for i in reversed(range(len(self.rewards) - 1)):
             self.returns[i] = self.rewards[i] + (1 - self.dones[i]) * self.gamma * self.returns[i+1]
 
-    def send_data(self, pipe):
+    def send_data(self, rayq):
         # CALCULATE RETURNS
         self.calculate_returns()
         # STACK ALL TENSORS BEFORE SENDING
@@ -108,7 +108,8 @@ class PPO:
             'cx': self.cx
         }
 
-        pipe.send(data)
+        # pipe.send(data)
+        rayq.put(data)
         del data
 
         self.post_update()

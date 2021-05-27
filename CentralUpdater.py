@@ -11,13 +11,17 @@ import torch.nn as nn
 import torch.nn.functional as f
 from torch.distributions.categorical import Categorical
 from tqdm import tqdm
-import sys
+import threading
+import ray
 
-
+@ray.remote
 class CentralUpdater:
-    def __init__(self, simulations) -> None:
+    def __init__(self, signal_actor, queue, simulations) -> None:
         self.simulations = simulations
         self.pipes = []
+        self.signal_actor = signal_actor
+        self.rayq = queue
+        self.counter = 0
 
         self.states = torch.tensor([])
         self.actions = torch.tensor([])
@@ -64,6 +68,7 @@ class CentralUpdater:
     def start(self, threaded = True): 
         if threaded: # START AS SEPARATE PROCESS
             process = multiprocessing.Process(target= self.run, args=())
+            # process = threading.Thread(target= self.run, args=())
             process.start()
         else:
             self.run()
@@ -75,8 +80,10 @@ class CentralUpdater:
         no_updates = (config['episodes']//self.simulations)//config['agent_update_frequency']
         for i in tqdm(range(no_updates), desc='UPDATES'):
             self.wait_for_data() # BLOCKS UNTIL ALL SIMULATIONS HAVE SENT DATA
-            
+
             policy_loss, value_loss = self.update()
+
+            self.counter = 0
             self.send_model()
             if config['use_wandb']:
                 wandb.log({'policy_loss': policy_loss, 'value_loss': value_loss})
@@ -102,10 +109,16 @@ class CentralUpdater:
         self.pipes.remove(pipe)
     
     def wait_for_data(self):
-        for pipe in self.pipes:
-            data = pipe.recv() # GETS DICT
-            self.add_data(data)
-            del data
+        while self.counter < self.simulations:
+            if not self.rayq.empty():
+                data = self.rayq.get()
+                self.add_data(data)
+                self.counter += 1
+
+        # for pipe in self.pipes:
+        #     data = pipe.recv() # GETS DICT
+        #     self.add_data(data)
+        #     del data
 
     
     def add_data(self, data):
@@ -120,8 +133,10 @@ class CentralUpdater:
 
 
     def send_model(self):
-        for pipe in self.pipes:
-            pipe.send(1)
+        ray.get(self.signal_actor.send.remote())
+        # for pipe in self.pipes:
+        #     print('\nUPDATES\n')
+        #     pipe.send(1)
             # pipe.send(self.model.state_dict())
     
     def update(self):
@@ -164,7 +179,7 @@ class CentralUpdater:
         total_policy_loss /= num_updates
         total_value_loss /= num_updates
 
-        logging.info('MODEL UPDATED, policy_loss: ' + str(-total_policy_loss) + ' value_loss: ' + str(total_value_loss))
+        # logging.info('MODEL UPDATED, policy_loss: ' + str(-total_policy_loss) + ' value_loss: ' + str(total_value_loss))
 
         self.post_update()
         self.checkpoint()
