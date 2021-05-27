@@ -12,7 +12,9 @@ from config import config
 from Brain import Brain
 
 import logging
+import ray
 # logging.basicConfig(filename=config['log'], level=logging.DEBUG)
+logging.basicConfig(filename='ingestor.log', level=logging.DEBUG)
 
 class Ingestor:
     def __init__(self, data_queue, translator, train, game) -> None:

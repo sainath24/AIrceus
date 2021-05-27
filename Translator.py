@@ -26,8 +26,8 @@ class Translator:
             if pokemon.active and pokemon.hp != 0.0: # ACTIVE POKEMON
                 move_name = pokemon.moves[position].name
         
-        if move_name == None:
-            logging.error('MOVE NAME NOT FOUND AT POSITION ' + str(position) + 'FOR POKEMON: ' + str(pokemon.get_dict()))
+        # if move_name == None:
+        #     logging.error('MOVE NAME NOT FOUND AT POSITION ' + str(position) + 'FOR POKEMON: ' + str(pokemon.get_dict()))
         return move_name
 
 

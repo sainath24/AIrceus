@@ -2,6 +2,7 @@ import threading
 import subprocess
 import logging
 import multiprocessing
+import ray
 
 class BattleSimulator:
     def __init__(self, data_queue, action_queue, formatid = 'gen4randombattle', p1 = 'agent', p2 = 'trainer') -> None:
@@ -22,7 +23,7 @@ class BattleSimulator:
                 action = self.action_q.get()
                 if action == 'game_over':
                     break
-                logging.debug(action)
+                # logging.debug(action)
                 self.proc.stdin.write(action)
                 self.proc.stdin.flush()
 

@@ -26,7 +26,7 @@ def get_move_data(move_id):
             out_dict = json.loads(out)
             break
         except Exception as e:
-            logging.warning('UABLE TO FIND MOVE ' + str(move_id))
+            # logging.warning('UABLE TO FIND MOVE ' + str(move_id))
             if removed_unicode == False: # TRY REMOVING UNICODE CHARACTERS
                 move_id = move_id.encode("ascii", "ignore").decode()
                 removed_unicode = True
@@ -99,17 +99,18 @@ def update_active_moves(game, pos, moves_json, player_identifier, maybe_trapped)
                 try:
                     game.p1_pokemon[pos].moves[position].current_pp = move_json['pp']
                 except Exception as e: # NO PP IN JSON
-                    logging.warning('UNABLE TO FIND PP IN MOVE JSON: ' + str(move_json))
+                    # logging.warning('UNABLE TO FIND PP IN MOVE JSON: ' + str(move_json))
+                    pass
                 try:
                     game.p1_pokemon[pos].moves[position].disabled = move_json['disabled']
                 except Exception as e: # NO DISABLED IN JSON
-                    logging.warning('UNABLE TO FIND DISBALED IN MOVE JSON: ' + str(move_json))
+                    # logging.warning('UNABLE TO FIND DISBALED IN MOVE JSON: ' + str(move_json))
                     game.p1_pokemon[pos].moves[position].disabled = False
                     try:
                         game.p1_pokemon[pos].moves[position].trapped = move_json['trapped']
                     except Exception as e:
                         game.p1_pokemon[pos].moves[position].trapped = True
-                        logging.warning('POKEMON TRAPPED WITH MOVE JSON: ' + str(move_json))
+                        # logging.warning('POKEMON TRAPPED WITH MOVE JSON: ' + str(move_json))
                         continue
 
                 try:
@@ -142,17 +143,18 @@ def update_active_moves(game, pos, moves_json, player_identifier, maybe_trapped)
                 try:
                     game.p2_pokemon[pos].moves[position].pp = move_json['pp']
                 except Exception as e: # NO PP IN JSON
-                    logging.warning('UNABLE TO FIND PP IN MOVE JSON: ' + str(move_json))
+                    # logging.warning('UNABLE TO FIND PP IN MOVE JSON: ' + str(move_json))
+                    pass
                 try:
                     game.p2_pokemon[pos].moves[position].disabled = move_json['disabled']
                 except Exception as e: # NO DISABLED IN JSON
-                    logging.warning('UNABLE TO FIND DISBALED IN MOVE JSON: ' + str(move_json))
+                    # logging.warning('UNABLE TO FIND DISBALED IN MOVE JSON: ' + str(move_json))
                     game.p2_pokemon[pos].moves[position].disabled = False
                     try:
                         game.p2_pokemon[pos].moves[position].trapped = move_json['trapped']
                     except Exception as e:
                         game.p2_pokemon[pos].moves[position].trapped = True
-                        logging.warning('POKEMON TRAPPED WITH MOVE JSON: ' + str(move_json))
+                        # logging.warning('POKEMON TRAPPED WITH MOVE JSON: ' + str(move_json))
                         continue
 
                 try:
@@ -190,7 +192,7 @@ def get_pokemon_data(name):
             out_dict = json.loads(out)
             break
         except Exception as e:
-            logging.warning('UNABLE TO FIND POKEMON:  ' + str(name))
+            # logging.warning('UNABLE TO FIND POKEMON:  ' + str(name))
             if removed_unicode == False: # TRY REMOVING UNICODE CHARACTERS
                 name = name.encode("ascii", "ignore").decode()
                 removed_unicode = True

@@ -186,7 +186,7 @@ def get_pokemon_state(pokemon, enemy_pokemon_list, base, weather = None):
         state = torch.cat((pokemon_state, type_adv, move_state))
     
     else:
-        logging.warning('SENDING DEFAULT STATE')
+        # logging.warning('SENDING DEFAULT STATE')
         state = get_default_state()
 
     
