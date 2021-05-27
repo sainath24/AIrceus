@@ -131,6 +131,8 @@ class CentralUpdater:
         self.hx = torch.cat((self.hx, data['hx']))
         self.cx = torch.cat((self.cx, data['cx']))
 
+        del data
+
 
     def send_model(self):
         ray.get(self.signal_actor.send.remote())
@@ -226,6 +228,7 @@ class CentralUpdater:
         return critic_output, action_log_probs, entropy
 
     def post_update(self):
+        del self.states, self.actions, self.values, self.returns, self.log_prob_actions, self.dones, self.hx, self.cx
         self.states = torch.tensor([])
         self.actions = torch.tensor([])
         self.values = torch.tensor([])

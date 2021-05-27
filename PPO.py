@@ -115,6 +115,7 @@ class PPO:
         self.post_update()
     
     def post_update(self):
+        del self.states, self.actions, self.rewards, self.values, self.returns, self.log_prob_actions, self.dones, self.hx, self.cx
         self.states = []
         self.actions = []
         self.rewards = []
