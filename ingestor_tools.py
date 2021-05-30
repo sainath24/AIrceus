@@ -75,7 +75,10 @@ def create_move(move_json):
     move_json['enemy_stat_changes'] = move_dict['enemy_stat_changes']
 
     if 'maxpp' not in move_json.keys():
+        try:
             move_json['maxpp'] = move_json['pp']
+        except:
+            pass # GET PP AND MAXPP FROM DEFAULT CONFIG
 
     return Move(move_json)
     
