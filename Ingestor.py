@@ -202,7 +202,7 @@ class Ingestor:
 
         elif '|error' in line:
             logging.error(line)
-            self.game_over(tie=True) # TODO: TEMP HANDLING ERROR
+            self.game_over('trainer') # TODO: TEMP HANDLING ERROR
 
     def update_trainer_weights(self):
         self.trainer.algo.a2c.load_state_dict(self.agent.algo.a2c.state_dict())
@@ -215,7 +215,6 @@ class Ingestor:
             
 
     def run(self):
-
         while self.game_end == False:
             if not self.data_q.empty():
                 line = self.data_q.get()
