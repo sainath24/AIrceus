@@ -176,6 +176,8 @@ class CentralUpdater:
                 total_value_loss += value_loss.item()
                 total_policy_loss += policy_loss.item()
 
+                del values, action_log_probs, entropy
+
         num_updates = self.epochs * batch_count
         
         total_policy_loss /= num_updates
