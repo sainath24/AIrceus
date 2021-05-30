@@ -74,6 +74,9 @@ def create_move(move_json):
     move_json['user_stat_changes'] = move_dict['user_stat_changes']
     move_json['enemy_stat_changes'] = move_dict['enemy_stat_changes']
 
+    if 'maxpp' not in move_json.keys():
+            move_json['maxpp'] = move_json['pp']
+
     return Move(move_json)
     
 def get_active_moves(moves_json):
@@ -81,8 +84,6 @@ def get_active_moves(moves_json):
     moves = []
     for move_json in moves_json:
         move = create_move(move_json)
-        if 'maxpp' not in move.keys():
-            move['maxpp'] = move['pp']
         moves.append(move)
     for i in range(len(moves), 4):
         moves.append(Move(default_move))
