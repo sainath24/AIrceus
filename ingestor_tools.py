@@ -81,6 +81,8 @@ def get_active_moves(moves_json):
     moves = []
     for move_json in moves_json:
         move = create_move(move_json)
+        if 'maxpp' not in move.keys():
+            move['maxpp'] = move['pp']
         moves.append(move)
     for i in range(len(moves), 4):
         moves.append(Move(default_move))

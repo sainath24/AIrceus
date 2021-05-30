@@ -8,7 +8,7 @@ config = {
     'state_size': 157,#840,
     'action_size': 9,#10,
     'hidden_size': 128,
-    'lstm_size': 2,
+    'lstm_size': 3,
     'algorithm':'PPO',
     'batch_size': 32,#201,
     # 'num_mini_batches': 5,
@@ -18,8 +18,8 @@ config = {
     'entropy_coef' : 1e-3,
     'max_grad_norm' : 100.0,
     'gamma': 0.99,
-    'trainer_update_frequency': 20, # IN EPISODES PER SIMULATION PROCESS
-    'agent_update_frequency': 2, # IN EPISODES PER SIMULATION PROCESS
+    'trainer_update_frequency': 2, # IN EPISODES PER SIMULATION PROCESS
+    'agent_update_frequency': 1, # IN EPISODES PER SIMULATION PROCESS
     'use_wandb': False
     ## TODO: ADD REST OF THE CONFIG AND SET PARAMS
 }
@@ -30,8 +30,8 @@ default_move = {
     'target': 'self',
     'accuracy': 0,
     'basePower': 0,
-    'maxpp': 0,
-    'pp': 0,
+    'maxpp': 1,
+    'pp': 1,
     'disabled': True, 
     'user_stat_changes': {},
     'enemy_stat_changes': {},
