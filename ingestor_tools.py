@@ -79,6 +79,9 @@ def create_move(move_json):
             move_json['maxpp'] = move_json['pp']
         except:
             pass # GET PP AND MAXPP FROM DEFAULT CONFIG
+    
+    if 'disabled' not in move_json.keys():
+        move_json['disabled'] = False
 
     return Move(move_json)
     
