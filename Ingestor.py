@@ -184,6 +184,7 @@ class Ingestor:
 
         elif '|turn|' in line: # take a normal move decision
             self.take_decision()
+            self.turn_count +=1
         
         elif '|-weather|' in line: # weather changes
             self.weather_change(line[len('|-weather|'):])
@@ -228,7 +229,6 @@ class Ingestor:
                 # if self.train:
                 #     logging.info(line)
                 self.ingest(line)
-                self.turn_count +=1
             if self.game_end == False and self.train and self.turn_count >= self.max_turns: # MAX TURNS REACHED, END GAME WITH LOSS
                 self.game_over('trainer') #TODO: DO NOT PASS TRAINER IN THE FUTURE
 
