@@ -20,6 +20,7 @@ config = {
     'gamma': 0.99,
     'trainer_update_frequency': 2, # IN EPISODES PER SIMULATION PROCESS
     'agent_update_frequency': 1, # IN EPISODES PER SIMULATION PROCESS
+    'max_turns_per_game': 100,
     'use_wandb': False
     ## TODO: ADD REST OF THE CONFIG AND SET PARAMS
 }

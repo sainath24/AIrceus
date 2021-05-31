@@ -29,8 +29,10 @@ class Ingestor:
         self.game = game
         self.switch_queue = []
         self.game_end = False
+        self.turn_count = 0
         if train:
             self.trainer_update_frequency = config['trainer_update_frequency']
+        self.max_turns = config['max_turns_per_game']
         
     def set_queue(self, data_queue):
         self.data_q = data_queue
@@ -226,7 +228,12 @@ class Ingestor:
                 # if self.train:
                 #     logging.info(line)
                 self.ingest(line)
+                self.turn_count +=1
+            if self.game_end == False and self.train and self.turn_count >= self.max_turns: # MAX TURNS REACHED, END GAME WITH LOSS
+                self.game_over('trainer') #TODO: DO NOT PASS TRAINER IN THE FUTURE
+
         self.game_end = False
+        self.turn_count = 0
     
     def kill(self):
         self.game_end = True
