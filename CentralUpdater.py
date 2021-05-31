@@ -135,7 +135,7 @@ class CentralUpdater:
 
 
     def send_model(self):
-        ray.get(self.signal_actor.send.remote())
+        ray.get(self.signal_actor.send.remote(clear = True))
         # for pipe in self.pipes:
         #     print('\nUPDATES\n')
         #     pipe.send(1)
