@@ -6,21 +6,22 @@ config = {
     'simulations': 2, # NUMBER OF PARALLEL DATA COLLECTORS
     'episodes': 10, # TOTAL NUMBER OF EPISODES THAT WILL BE EQUALLY SPLIT BETWEEN PARALLEL SIMULTIONS
     'state_size': 157,#840,
+    'critic_state_size': 732,
     'action_size': 9,#10,
-    'hidden_size': 256,
-    'lstm_size': 3,
+    'hidden_size': 512,
+    'lstm_size': 1,
     'algorithm':'PPO',
     'batch_size': 32,#201,
     # 'num_mini_batches': 5,
     'epochs': 15,
     'clip_param': 0.2,
     'value_loss_coef': 1,
-    'entropy_coef' : 1e-3,
-    'max_grad_norm' : 100.0,
+    'entropy_coef' : 1e-2,
+    'max_grad_norm' : 50.0,
     'gamma': 0.99,
     'trainer_update_frequency': 2, # IN EPISODES PER SIMULATION PROCESS
     'agent_update_frequency': 1, # IN EPISODES PER SIMULATION PROCESS
-    'max_turns_per_game': 100,
+    'max_turns_per_game': 200,
     'use_wandb': False
     ## TODO: ADD REST OF THE CONFIG AND SET PARAMS
 }
