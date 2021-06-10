@@ -24,6 +24,7 @@ class CentralUpdater:
         self.counter = 0
 
         self.states = torch.tensor([])
+        self.critic_states = torch.tensor([])
         self.actions = torch.tensor([])
         self.values = torch.tensor([])
         self.returns = torch.tensor([])
@@ -36,6 +37,7 @@ class CentralUpdater:
         # self.num_mini_batches = number_mini_batches
         self.epochs = config['epochs']
         self.state_size = config['state_size']
+        self.critic_state_size = config['critic_state_size']
         self.action_size = config['action_size']
         self.hidden_size = config['hidden_size']
         self.clip_param = config['clip_param']
@@ -50,7 +52,7 @@ class CentralUpdater:
         self.max_grad_norm = config['max_grad_norm'] ## NOT USED
         self.gamma = config['gamma']
 
-        self.model = NeuralNet(self.state_size, self.action_size, self.hidden_size, self.lstm_size, self.device)
+        self.model = NeuralNet(self.state_size, self.critic_state_size, self.action_size, self.hidden_size, self.lstm_size, self.device)
         self.optimiser = optim.Adam(self.model.parameters(), lr=config['optim_lr'])
 
         self.model.to(self.device)
@@ -130,6 +132,7 @@ class CentralUpdater:
         self.returns = torch.cat((self.returns, data['returns']))
         self.hx = torch.cat((self.hx, data['hx']))
         self.cx = torch.cat((self.cx, data['cx']))
+        self.critic_states = torch.cat((self.critic_states, data['critic_states']))
 
         del data
 
@@ -154,10 +157,10 @@ class CentralUpdater:
             data = self.data_generator(advantages)
             for sample in data:
                 batch_count+=1
-                lstm_hidden_batch, states_batch, actions_batch, values_batch, returns_batch, \
+                lstm_hidden_batch, states_batch, critic_states_batch, actions_batch, values_batch, returns_batch, \
                     dones_batch, old_action_log_probs_batch, adv_targ = sample
 
-                values, action_log_probs, entropy = self.evaluate(lstm_hidden_batch, states_batch, actions_batch)
+                values, action_log_probs, entropy = self.evaluate(lstm_hidden_batch, states_batch, critic_states_batch, actions_batch)
 
                 ratio = torch.exp(action_log_probs - old_action_log_probs_batch.detach())
                 surr1 = ratio * adv_targ.detach()
@@ -197,6 +200,7 @@ class CentralUpdater:
 
         for indices in sampler:
             states_batch = self.states.view(-1, self.state_size)[indices]
+            critic_states_batch = self.critic_states.view(-1, self.critic_state_size)[indices]
             actions_batch = self.actions.view(-1, 1)[indices]
             values_batch = self.values.view(-1, 1)[indices]
             returns_batch = self.returns.view(-1, 1)[indices]
@@ -215,11 +219,11 @@ class CentralUpdater:
 
             adv_targ = advantages.view(-1,1)[indices]
 
-            yield lstm_hidden_batch, states_batch, actions_batch, values_batch, returns_batch, \
+            yield lstm_hidden_batch, states_batch, critic_states_batch, actions_batch, values_batch, returns_batch, \
                 dones_batch, old_action_log_probs_batch, adv_targ
 
-    def evaluate(self, lstm_hidden_batch, states_batch, actions_batch):
-        actor_output, critic_output, lstm_hidden = self.model(states_batch, lstm_hidden_batch)
+    def evaluate(self, lstm_hidden_batch, states_batch, critic_states_batch, actions_batch):
+        actor_output, critic_output, lstm_hidden = self.model(states_batch, critic_states_batch, lstm_hidden_batch)
         
         actor_output = f.softmax(actor_output, dim = -1)
 
@@ -230,8 +234,9 @@ class CentralUpdater:
         return critic_output, action_log_probs, entropy
 
     def post_update(self):
-        del self.states, self.actions, self.values, self.returns, self.log_prob_actions, self.dones, self.hx, self.cx
+        del self.states, self.critic_states, self.actions, self.values, self.returns, self.log_prob_actions, self.dones, self.hx, self.cx
         self.states = torch.tensor([])
+        self.critic_states = torch.tensor([])
         self.actions = torch.tensor([])
         self.values = torch.tensor([])
         self.returns = torch.tensor([])

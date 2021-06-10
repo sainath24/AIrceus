@@ -1,3 +1,4 @@
+from reward_state_tools import calculate_type_adv_normal
 import torch
 from torch.distributions.categorical import Categorical
 import torch.optim as optim
@@ -16,6 +17,7 @@ class PPO:
         self.batch_size = batch_size
         self.epochs = epochs
         self.state_size = state_size
+        self.critic_state_size = config['critic_state_size']
         self.action_size = action_size
         self.hidden_size = hidden_size
         self.lstm_size = config['lstm_size']
@@ -27,6 +29,7 @@ class PPO:
         self.max_grad_norm = config['max_grad_norm']
 
         self.states = []
+        self.critic_states = []
         self.actions = []
         self.rewards = []
         self.values = []
@@ -36,7 +39,7 @@ class PPO:
         self.hx = []
         self.cx = []
 
-        self.a2c = NeuralNet(self.state_size, self.action_size, self.hidden_size, self.lstm_size, self.device)
+        self.a2c = NeuralNet(self.state_size, self.critic_state_size, self.action_size, self.hidden_size, self.lstm_size, self.device)
         self.optimiser = optim.Adam(self.a2c.parameters(), lr=config['optim_lr'])
 
         self.gamma = config['gamma']
@@ -44,6 +47,9 @@ class PPO:
         self.a2c.to(self.device)
         
         self.load()
+
+    def insert_critic_state(self, critic_state):
+        self.critic_states.append(critic_state.detach())
 
     def insert_state(self, state):
         self.states.append(state.detach())
@@ -96,6 +102,8 @@ class PPO:
         self.hx = torch.stack((self.hx))
         self.cx = torch.stack((self.cx))
 
+        self.critic_states = torch.stack((self.critic_states))
+
         # PUT DATA IN A DICT TO SEND
         data = {
             'states': self.states,
@@ -105,7 +113,8 @@ class PPO:
             'dones': self.dones,
             'returns': self.returns,
             'hx': self.hx,
-            'cx': self.cx
+            'cx': self.cx,
+            'critic_states': self.critic_states
         }
 
         # pipe.send(data)
@@ -115,8 +124,9 @@ class PPO:
         self.post_update()
     
     def post_update(self):
-        del self.states, self.actions, self.rewards, self.values, self.returns, self.log_prob_actions, self.dones, self.hx, self.cx
+        del self.states, self.critic_states, self.actions, self.rewards, self.values, self.returns, self.log_prob_actions, self.dones, self.hx, self.cx
         self.states = []
+        self.critic_states = []
         self.actions = []
         self.rewards = []
         self.values = []
