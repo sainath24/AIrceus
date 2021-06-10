@@ -268,7 +268,7 @@ def get_state(game, player_identifier):
     return state
 
 def get_invalid_actions(game, player_identifier):
-    ''' return listo of invalid actions comprising of invalid active moves and invalid switches'''
+    ''' return list of invalid actions comprising of invalid active moves and invalid switches'''
     invalid_moves = []
     invalid_switch = [] 
     player_pokemon = None
@@ -304,5 +304,9 @@ def get_invalid_actions(game, player_identifier):
     #     invalid_moves = [1.0, 1.0, 1.0, 1.0]
     
     invalid_actions = torch.cat((torch.tensor(invalid_moves, dtype=torch.float), torch.tensor(invalid_switch, dtype=torch.float)))
+
+    if invalid_actions.size(0) != 9:
+        print(f'ERROR IN INVALID ACTIONS: POKEMON: {len(invalid_switch)}, MOVES: {len(invalid_moves)}')
+        print(f'GAME DICTIONARY: {game.get_dict()}')
 
     return invalid_actions

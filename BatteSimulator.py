@@ -40,7 +40,6 @@ class BattleSimulator:
         else:
             self.run()
 
-
     def run(self):
         self.proc = subprocess.Popen(['node', 'pokemon-showdown/pokemon-showdown', 'simulate-battle'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
 
@@ -48,7 +47,7 @@ class BattleSimulator:
         output_thread.setDaemon(True)
         output_thread.start()
 
-        get_action_thread = threading.Thread(target=self.get_action)
+        get_action_thread = threading.Thread(target=self.get_action, args = ())
         get_action_thread.setDaemon(True)
         get_action_thread.start()
         

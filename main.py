@@ -7,6 +7,7 @@ from Translator import Translator
 from Brain import Brain
 
 from multiprocessing import Queue
+# from queue import Queue
 import multiprocessing
 from config import config
 
@@ -36,6 +37,9 @@ class BattleProcess:
         self.data_queue = Queue()
         self.action_queue = Queue()
 
+        # self.data_queue = rayQ()
+        # self.action_queue = rayQ()
+
         self.batsim = BattleSimulator(data_queue = self.data_queue, action_queue = self.action_queue)
         self.translator = Translator(action_queue = self.action_queue)
         self.game = Game()
@@ -48,6 +52,8 @@ class BattleProcess:
     def reset_queue(self):
         self.data_queue = Queue()
         self.action_queue = Queue()
+        # self.data_queue = rayQ()
+        # self.action_queue = rayQ()
         self.batsim.set_queues(self.data_queue, self.action_queue)
         self.ingestor.set_queue(self.data_queue)
         self.translator.set_queue(self.action_queue)
@@ -61,8 +67,8 @@ class BattleProcess:
         # self.run()
 
     def run(self):
-        if config['use_wandb']:
-            wandb.init(project = 'AIrceus_V2.0')
+        # if config['use_wandb']:
+        #     wandb.init(project = 'AIrceus_V2.0')
         for i in tqdm(range(self.episodes), desc = f'EPISODES_{self.pid}'): # RUN FOR SPECIFIED NUMBER OF EPISODES
             self.game.reset()
             self.reset_queue()
@@ -81,9 +87,9 @@ class BattleProcess:
                 self.ingestor.update_trainer_weights()
                 # logging.info(f'Trainer wrights updated after episode {i+1}')
             
-            if config['use_wandb']:
-                wandb.log({f'episode_{self.pid}': i+1})
-                wandb.log({f'episode_reward_{self.pid}': self.ingestor.agent.episode_reward})
+            # if config['use_wandb']:
+            #     wandb.log({f'episode_{self.pid}': i+1})
+            #     wandb.log({f'episode_reward_{self.pid}': self.ingestor.agent.episode_reward})
             self.ingestor.agent.episode_reward = 0
         # self.pipe.close()
 
