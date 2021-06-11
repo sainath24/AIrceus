@@ -207,11 +207,11 @@ class CentralUpdater:
             dones_batch = self.dones.view(-1,1)[indices]
             old_action_log_probs_batch = self.log_prob_actions.view(-1, 1)[indices]
             
-            hx_batch = torch.zeros(self.lstm_size, len(indices), self.hidden_size)
+            hx_batch = torch.zeros(self.lstm_size, len(indices), self.action_size)
             for i in range(self.lstm_size):
                 hx_batch[i].copy_(torch.cat(([x[i] for x in self.hx[indices]])))
 
-            cx_batch = torch.zeros(self.lstm_size, len(indices), self.hidden_size)
+            cx_batch = torch.zeros(self.lstm_size, len(indices), self.action_size)
             for i in range(self.lstm_size):
                 cx_batch[i].copy_(torch.cat(([x[i] for x in self.cx[indices]])))
 
