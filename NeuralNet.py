@@ -12,7 +12,7 @@ class NeuralNet(nn.Module):
         self.lstm_size = lstm_size
         self.device = device
 
-        self.lstm = nn.LSTM(hidden_size, hidden_size, lstm_size)
+        self.lstm = nn.LSTM(hidden_size, action_size, lstm_size)
 
         self.actor = nn.Sequential(
             nn.Linear(state_size, hidden_size), nn.ReLU()
@@ -28,10 +28,10 @@ class NeuralNet(nn.Module):
             nn.Linear(hidden_size, 1)
         )
 
-        self.lstm_hidden = (torch.zeros(self.lstm_size,1,hidden_size, device=self.device), torch.zeros(self.lstm_size,1,hidden_size, device=self.device))
+        self.lstm_hidden = (torch.zeros(self.lstm_size,1,action_size, device=self.device), torch.zeros(self.lstm_size,1,action_size, device=self.device))
 
     def reset_lstm_hidden_states(self): 
-        self.lstm_hidden = (torch.zeros(self.lstm_size,1,self.hidden_size, device=self.device), torch.zeros(self.lstm_size,1,self.hidden_size, device=self.device))
+        self.lstm_hidden = (torch.zeros(self.lstm_size,1,self.action_size, device=self.device), torch.zeros(self.lstm_size,1,self.action_size, device=self.device))
 
 
     def forward(self, nn_input, critic_input, lstm_hidden = None):
