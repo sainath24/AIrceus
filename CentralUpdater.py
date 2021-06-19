@@ -228,7 +228,9 @@ class CentralUpdater:
         actor_output = f.softmax(actor_output, dim = -1)
 
         actor_probs = Categorical(actor_output)
-        action_log_probs = actor_probs.log_prob(actions_batch)
+        action_log_probs = actor_probs.log_prob(actions_batch.view(1,actions_batch.size(0)))
+        action_log_probs = action_log_probs.view(actions_batch.size(0),1)
+
         entropy = actor_probs.entropy().mean()
 
         return critic_output, action_log_probs, entropy
