@@ -67,8 +67,8 @@ class BattleProcess:
         # self.run()
 
     def run(self):
-        # if config['use_wandb']:
-        #     wandb.init(project = 'AIrceus_V2.0')
+        if config['use_wandb']:
+            wandb.init(project = 'AIrceus_V2.0')
         for i in tqdm(range(self.episodes), desc = f'EPISODES_{self.pid}'): # RUN FOR SPECIFIED NUMBER OF EPISODES
             self.game.reset()
             self.reset_queue()
