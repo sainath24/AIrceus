@@ -48,6 +48,7 @@ class Brain:
 
     def get_action(self, game, must_switch = False):
         state, invalid_actions = self.create_state(game)
+        # state = reward_state_tools.get_state(game, self.player_identifier)
         critic_state = reward_state_tools.get_state(game, self.player_identifier)
         # print('\nSTATE LENGTH: ', state.size())
         # print('\nSTATE: ', state)
@@ -92,7 +93,7 @@ class Brain:
         reward_state = reward_state_tools.get_state(game, self.player_identifier)
         self.compute_rewards(reward_state, game)
         
-        # if config['use_wandb']:
-        #     wandb.log({'episode_rewards': self.episode_reward})
-        # self.episode_reward = 0
+        if config['use_wandb'] and self.train:
+            wandb.log({'episode_rewards': self.episode_reward})
+        self.episode_reward = 0
 
