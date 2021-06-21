@@ -21,6 +21,8 @@ class Brain:
         self.batch_size = config['batch_size']
         self.episode_reward = 0.0
 
+        self.enemy_alive = [1] *6
+
         self.algo = None
         if config['algorithm'] == 'PPO':
             self.algo = PPO(config['batch_size'], config['epochs'], \
@@ -39,7 +41,7 @@ class Brain:
 
 
     def compute_rewards(self, state, game):
-        reward = reward_tools.get_reward(state, game)
+        reward, self.enemy_alive = reward_tools.get_reward(state, game, self.enemy_alive)
         # if config['use_wandb']:
         #     wandb.log({'rewards': reward})
         self.episode_reward += reward
@@ -96,4 +98,5 @@ class Brain:
         if config['use_wandb'] and self.train:
             wandb.log({'episode_rewards': self.episode_reward})
         self.episode_reward = 0
+        self.enemy_alive = [1] * 6
 
