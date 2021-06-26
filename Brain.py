@@ -20,6 +20,7 @@ class Brain:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.batch_size = config['batch_size']
         self.episode_reward = 0.0
+        self.step = 0
 
         self.enemy_alive = [1] *6
 
@@ -36,7 +37,8 @@ class Brain:
         self.algo.insert_critic_state(critic_state)
         self.algo.insert_action(action)
         self.algo.insert_log_prob_action(log_prob_action)
-        self.algo.insert_done(torch.tensor(0.0, dtype=torch.float, device=self.device))
+        if self.step > 0:
+            self.algo.insert_done(torch.tensor(0.0, dtype=torch.float, device=self.device))
         self.algo.insert_lstm_hidden(lstm_hidden)
 
 
@@ -57,7 +59,7 @@ class Brain:
         lstm_hidden_to_insert = self.algo.a2c.lstm_hidden#torch.stack(self.algo.a2c.lstm_hidden).detach() # IS A TUPLE OF TENSORS, STACK AS ONE TESNOR IN ORDER TO INSERT INTO REPLAY BUFFER
         state = state.to(self.device)
         with torch.no_grad():
-            actor_values, critic_values, _ = self.algo.a2c(state.unsqueeze(0), critic_state)
+            actor_values, critic_values, _ = self.algo.a2c(state.unsqueeze(0), critic_state.unsqueeze(0))
         # print('ACTION PROBS BEFORE MASK: ' + str(self.player_identifier) + ' ' + str(actor_values))
         # print('MASK:', invalid_actions)
         # INVALID ACTION MASKING
@@ -76,10 +78,13 @@ class Brain:
         # else:
         # action = torch.argmax(actor_values_clone)
         if self.train:
-            reward_state = reward_state_tools.get_state(game, self.player_identifier)
-            self.compute_rewards(reward_state, game)
+            if self.step > 0:
+                reward_state = reward_state_tools.get_state(game, self.player_identifier)
+                self.compute_rewards(reward_state, game)
             self.update_memory(lstm_hidden_to_insert, action, actor_probs, critic_values, state, critic_state)
         
+        self.step += 1
+
         return action.item()
 
     def create_state(self, game):
@@ -99,4 +104,5 @@ class Brain:
             wandb.log({'episode_rewards': self.episode_reward})
         self.episode_reward = 0
         self.enemy_alive = [1] * 6
+        self.step = 0
 
