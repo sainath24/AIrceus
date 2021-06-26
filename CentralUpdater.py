@@ -83,12 +83,12 @@ class CentralUpdater:
         for i in tqdm(range(no_updates), desc='UPDATES'):
             self.wait_for_data() # BLOCKS UNTIL ALL SIMULATIONS HAVE SENT DATA
 
-            policy_loss, value_loss = self.update()
+            policy_loss, value_loss, entropy = self.update()
 
             self.counter = 0
             self.send_model()
             if config['use_wandb']:
-                wandb.log({'policy_loss': policy_loss, 'value_loss': value_loss})
+                wandb.log({'policy_loss': policy_loss, 'value_loss': value_loss, 'entropy': entropy})
 
     def load(self):
         if os.path.isfile(self.model_path):
@@ -156,6 +156,7 @@ class CentralUpdater:
 
         total_value_loss = 0.0
         total_policy_loss = 0.0
+        total_entropy = 0.0
 
         for epoch in range(self.epochs):
             data = self.data_generator(advantages)
@@ -189,6 +190,7 @@ class CentralUpdater:
 
                 total_value_loss += value_loss.item()
                 total_policy_loss += policy_loss.item()
+                total_entropy += entropy.item()
 
                 del values, action_log_probs, entropy
 
@@ -196,13 +198,14 @@ class CentralUpdater:
         
         total_policy_loss /= num_updates
         total_value_loss /= num_updates
+        total_entropy /= num_updates
 
         # logging.info('MODEL UPDATED, policy_loss: ' + str(-total_policy_loss) + ' value_loss: ' + str(total_value_loss))
 
         self.post_update()
         self.checkpoint()
 
-        return -total_policy_loss, total_value_loss
+        return -total_policy_loss, total_value_loss, total_entropy
 
     def data_generator(self, advantages):
         data_length = self.states.size(0)
