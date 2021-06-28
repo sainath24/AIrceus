@@ -35,11 +35,11 @@ class CentralUpdater:
 
         self.batch_size = config['batch_size']
         # self.num_mini_batches = number_mini_batches
+        self.use_lstm = config['use_lstm']
         self.epochs = config['epochs']
         self.state_size = config['state_size']
         self.critic_state_size = config['critic_state_size']
         self.action_size = config['action_size']
-        self.hidden_size = config['hidden_size']
         self.clip_param = config['clip_param']
         self.lstm_size = config['lstm_size']
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -52,7 +52,7 @@ class CentralUpdater:
         self.max_grad_norm = config['max_grad_norm'] ## NOT USED
         self.gamma = config['gamma']
 
-        self.model = NeuralNet(self.state_size, self.critic_state_size, self.action_size, self.hidden_size, self.lstm_size, self.device)
+        self.model = NeuralNet(self.state_size, self.critic_state_size, self.action_size, self.lstm_size, self.device)
         self.optimiser = optim.Adam(self.model.parameters(), lr=config['optim_lr'])
 
         self.model.to(self.device)
@@ -170,6 +170,9 @@ class CentralUpdater:
                 values, action_log_probs, entropy = self.evaluate(lstm_hidden_batch, states_batch, critic_states_batch, actions_batch)
 
                 # print('returns batch size:', returns_batch.size())
+                # print('returns batch:', returns_batch)
+                # print('values batch:', values)
+
                 # print('values size:', values.size())
                 # print('action log probs size:', action_log_probs.size())
                 # print('old log probs size: ', old_action_log_probs_batch.size())
@@ -210,69 +213,69 @@ class CentralUpdater:
     def data_generator(self, advantages):
         data_length = self.states.size(0)
 
-        indices = []
-        start = -1
-        for i,val in enumerate(self.dones):
-            if int(val.item()) == 0 and start == -1:
-                start = i
-            elif int(val.item()) == 1 and start != -1:
-                indices.append((start, i))
-                start = -1
-        
-        # print('indices',indices)
-        
-        perm = torch.randperm(len(indices)).tolist()
-        # print('perm', perm)
-
-        for i in perm:
-            start = indices[i][0]
-            end = indices[i][1] + 1
-
-            # print('states size', self.states.size())
-            # print('advantages size', advantages.size())
-
-            states_batch = self.states.view(-1, self.state_size)[start:end]
-            critic_states_batch = self.critic_states.view(-1, self.critic_state_size)[start:end]
-            actions_batch = self.actions.view(-1, 1)[start:end]
-            values_batch = self.values.view(-1, 1)[start:end]
-            returns_batch = self.returns.view(-1, 1)[start:end]
-            dones_batch = self.dones.view(-1,1)[start:end]
-            old_action_log_probs_batch = self.log_prob_actions.view(-1, 1)[start:end]
+        if self.use_lstm:
+            indices = []
+            start = -1
+            for i,val in enumerate(self.dones):
+                if int(val.item()) == 0 and start == -1:
+                    start = i
+                elif int(val.item()) == 1 and start != -1:
+                    indices.append((start, i))
+                    start = -1
             
-
-            lstm_hidden_batch = (None, None)
-
-            adv_targ = advantages.view(-1,1)[start:end]
-
-            yield lstm_hidden_batch, states_batch, critic_states_batch, actions_batch, values_batch, returns_batch, \
-                dones_batch, old_action_log_probs_batch, adv_targ
+            # print('indices',indices)
             
+            perm = torch.randperm(len(indices)).tolist()
+            # print('perm', perm)
 
-        # sampler = BatchSampler(SubsetRandomSampler(range(data_length)), self.batch_size, drop_last=False)
+            for i in perm:
+                start = indices[i][0]
+                end = indices[i][1] + 1
 
-        # for indices in sampler:
-        #     states_batch = self.states.view(-1, self.state_size)[indices]
-        #     critic_states_batch = self.critic_states.view(-1, self.critic_state_size)[indices]
-        #     actions_batch = self.actions.view(-1, 1)[indices]
-        #     values_batch = self.values.view(-1, 1)[indices]
-        #     returns_batch = self.returns.view(-1, 1)[indices]
-        #     dones_batch = self.dones.view(-1,1)[indices]
-        #     old_action_log_probs_batch = self.log_prob_actions.view(-1, 1)[indices]
+                # print('states size', self.states.size())
+                # print('advantages size', advantages.size())
+
+                states_batch = self.states.view(-1, self.state_size)[start:end]
+                critic_states_batch = self.critic_states.view(-1, self.critic_state_size)[start:end]
+                actions_batch = self.actions.view(-1, 1)[start:end]
+                values_batch = self.values.view(-1, 1)[start:end]
+                returns_batch = self.returns.view(-1, 1)[start:end]
+                dones_batch = self.dones.view(-1,1)[start:end]
+                old_action_log_probs_batch = self.log_prob_actions.view(-1, 1)[start:end]
+                
+                lstm_hidden_batch = (None, None)
+
+                adv_targ = advantages.view(-1,1)[start:end]
+
+                yield lstm_hidden_batch, states_batch, critic_states_batch, actions_batch, values_batch, returns_batch, \
+                    dones_batch, old_action_log_probs_batch, adv_targ
             
-        #     hx_batch = torch.zeros(self.lstm_size, len(indices), self.action_size)
-        #     for i in range(self.lstm_size):
-        #         hx_batch[i].copy_(torch.cat(([x[i] for x in self.hx[indices]])))
+        else:
+            sampler = BatchSampler(SubsetRandomSampler(range(data_length)), self.batch_size, drop_last=False)
 
-        #     cx_batch = torch.zeros(self.lstm_size, len(indices), self.action_size)
-        #     for i in range(self.lstm_size):
-        #         cx_batch[i].copy_(torch.cat(([x[i] for x in self.cx[indices]])))
+            for indices in sampler:
+                states_batch = self.states.view(-1, self.state_size)[indices]
+                critic_states_batch = self.critic_states.view(-1, self.critic_state_size)[indices]
+                actions_batch = self.actions.view(-1, 1)[indices]
+                values_batch = self.values.view(-1, 1)[indices]
+                returns_batch = self.returns.view(-1, 1)[indices]
+                dones_batch = self.dones.view(-1,1)[indices]
+                old_action_log_probs_batch = self.log_prob_actions.view(-1, 1)[indices]
+                
+                # hx_batch = torch.zeros(self.lstm_size, len(indices), self.action_size)
+                # for i in range(self.lstm_size):
+                #     hx_batch[i].copy_(torch.cat(([x[i] for x in self.hx[indices]])))
 
-        #     lstm_hidden_batch = (hx_batch, cx_batch)
+                # cx_batch = torch.zeros(self.lstm_size, len(indices), self.action_size)
+                # for i in range(self.lstm_size):
+                #     cx_batch[i].copy_(torch.cat(([x[i] for x in self.cx[indices]])))
 
-        #     adv_targ = advantages.view(-1,1)[indices]
+                lstm_hidden_batch = (None, None)
 
-        #     yield lstm_hidden_batch, states_batch, critic_states_batch, actions_batch, values_batch, returns_batch, \
-        #         dones_batch, old_action_log_probs_batch, adv_targ
+                adv_targ = advantages.view(-1,1)[indices]
+
+                yield lstm_hidden_batch, states_batch, critic_states_batch, actions_batch, values_batch, returns_batch, \
+                    dones_batch, old_action_log_probs_batch, adv_targ
 
     def evaluate(self, lstm_hidden_batch, states_batch, critic_states_batch, actions_batch):
         actor_output, critic_output, lstm_hidden = self.model(states_batch, critic_states_batch, lstm_hidden_batch)
