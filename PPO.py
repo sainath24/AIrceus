@@ -13,13 +13,12 @@ import os
 from config import config
 
 class PPO:
-    def __init__(self, batch_size, epochs, state_size, action_size, hidden_size, clip_param, device) -> None:
+    def __init__(self, batch_size, epochs, state_size, action_size, clip_param, device) -> None:
         self.batch_size = batch_size
         self.epochs = epochs
         self.state_size = state_size
         self.critic_state_size = config['critic_state_size']
         self.action_size = action_size
-        self.hidden_size = hidden_size
         self.lstm_size = config['lstm_size']
         self.clip_param = clip_param
         self.device = device
@@ -39,7 +38,7 @@ class PPO:
         self.hx = []
         self.cx = []
 
-        self.a2c = NeuralNet(self.state_size, self.critic_state_size, self.action_size, self.hidden_size, self.lstm_size, self.device)
+        self.a2c = NeuralNet(self.state_size, self.critic_state_size, self.action_size, self.lstm_size, self.device)
         self.optimiser = optim.Adam(self.a2c.parameters(), lr=config['optim_lr'])
 
         self.gamma = config['gamma']
@@ -85,6 +84,8 @@ class PPO:
 
     def calculate_returns(self):
         # TODO: IMPLEMENT GAE
+        # print('rewards length: ', len(self.rewards))
+        # print('states length: ', len(self.states))
         self.returns = torch.zeros(len(self.rewards))
         self.returns[-1] = self.rewards[-1]
         for i in reversed(range(len(self.rewards) - 1)):
