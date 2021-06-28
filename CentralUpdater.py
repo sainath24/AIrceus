@@ -77,7 +77,7 @@ class CentralUpdater:
 
     def run(self):
         if config['use_wandb']:
-            wandb.init(project = 'AIrceus_V2.0') 
+            wandb.init(project = 'AIrceus_V2.0', config = config) 
 
         no_updates = (config['episodes']//self.simulations)//config['agent_update_frequency']
         for i in tqdm(range(no_updates), desc='UPDATES'):
