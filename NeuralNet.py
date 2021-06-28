@@ -33,10 +33,6 @@ class NeuralNet(nn.Module):
         if self.use_lstm:
             self.lstm = nn.LSTM(actor_hidden_layers[-1], action_size, lstm_size)
             self.critic_lstm = nn.LSTM(critic_hidden_layers[-1], 1, lstm_size)
-
-            self.lstm_hidden = (torch.zeros(self.lstm_size,1,action_size, device=self.device), torch.zeros(self.lstm_size,1,action_size, device=self.device))
-            self.critic_lstm_hidden = (torch.zeros(self.lstm_size,1,1, device=self.device), torch.zeros(self.lstm_size,1,1, device=self.device))
-
         
         else: # NOT USING LSTM, CONNECT TO OUTPUT LAYER
             actor.append(nn.Linear(actor_hidden_layers[-1], self.action_size))
@@ -45,6 +41,10 @@ class NeuralNet(nn.Module):
         self.actor = nn.Sequential(*actor)
 
         self.critic = nn.Sequential(*critic)
+
+        # TODO: TEMPORARILY ALLOW THIS OUTSIDE IF FOR THE PURPOSE OF INSERTING INTO STORAGE 
+        self.lstm_hidden = (torch.zeros(self.lstm_size,1,action_size, device=self.device), torch.zeros(self.lstm_size,1,action_size, device=self.device))
+        self.critic_lstm_hidden = (torch.zeros(self.lstm_size,1,1, device=self.device), torch.zeros(self.lstm_size,1,1, device=self.device))
 
     def reset_lstm_hidden_states(self):
         if self.use_lstm:
