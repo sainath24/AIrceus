@@ -17,7 +17,7 @@ def get_reward(new_state, game, enemy_alive):
     agent_state, enemy_state = torch.split(new_state, int(new_state.size()[0]/2))
     # logging.debug('AGENT STATE SIZE: '+ str(agent_state.size()))
     # logging.debug('ENEMY STATE SIZE: ' +  str(enemy_state.size()))
-    new_enemy_alive = [1 if enemy_state[i]>0 else 0 for i in range(0,enemy_state.size(0),61)]
+    new_enemy_alive = [1 if enemy_state[i]>0 else 0 for i in range(0,enemy_state.size(0),62)]
     # print(f'New enemy alive: {new_enemy_alive}')
 
     reward = sum([a-b for a,b in zip(enemy_alive, new_enemy_alive)]) * 0.5

@@ -6,7 +6,7 @@ ACTIVE_ENEMY_POKEMON_WEIGHT = 1
 
 def get_default_state():
     '''All 0 for fainted pokemon in player's team, not opposition'''
-    return torch.zeros(61, dtype=torch.float)
+    return torch.zeros(62, dtype=torch.float)
 
 def normalize_score(score, minimum, maximum):
     ''' normalize to range [0,1] '''
@@ -75,12 +75,12 @@ def get_pokemon_specific_state(pokemon, base):
     if pokemon.hp == 0.0:
         return torch.zeros(1+1+5+1, dtype = torch.float)
     hp = torch.tensor([normalize_score(pokemon.hp, 0.0, 1.0)], dtype=torch.float)
-    # active = torch.tensor([1.0], dtype=torch.float) if pokemon.active else torch.tensor([0.0], dtype = torch.float)
+    active = torch.tensor([1.0], dtype=torch.float) if pokemon.active else torch.tensor([0.0], dtype = torch.float)
     status = get_status_score(pokemon.status)
     stats = get_stats_score(pokemon.stats)
     field_score = get_field_score(base)
 
-    state = torch.cat((hp, status, stats, field_score))
+    state = torch.cat((hp, active, status, stats, field_score))
     return state
 
 def get_pokemon_type_adv(pokemon, enemy_pokemon):
