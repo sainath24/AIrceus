@@ -27,7 +27,7 @@ class Brain:
         self.algo = None
         if config['algorithm'] == 'PPO':
             self.algo = PPO(config['batch_size'], config['epochs'], \
-                config['state_size'], config['action_size'], config['hidden_size'], config['clip_param'],self.device)
+                config['state_size'], config['action_size'], config['clip_param'],self.device)
 
 
     def update_memory(self, lstm_hidden, action, actor_probs, critic_value, state, critic_state):
@@ -52,7 +52,7 @@ class Brain:
 
     def get_action(self, game, must_switch = False):
         state, invalid_actions = self.create_state(game)
-        # state = reward_state_tools.get_state(game, self.player_identifier)
+        state = reward_state_tools.get_state(game, self.player_identifier)
         critic_state = reward_state_tools.get_state(game, self.player_identifier)
         # print('\nSTATE LENGTH: ', state.size())
         # print('\nSTATE: ', state)
