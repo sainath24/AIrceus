@@ -3,12 +3,14 @@ config = {
     'optim': 'optim.pth',
     'log': 'game.log',
     'optim_lr': 1e-5,
-    'simulations': 2, # NUMBER OF PARALLEL DATA COLLECTORS
+    'simulations': 1, # NUMBER OF PARALLEL DATA COLLECTORS
     'episodes': 10, # TOTAL NUMBER OF EPISODES THAT WILL BE EQUALLY SPLIT BETWEEN PARALLEL SIMULTIONS
-    'state_size': 157,#840,
+    'state_size': 732, #157,#840,
     'critic_state_size': 732,
     'action_size': 9,#10,
-    'hidden_size': 512,
+    'actor_hidden_layers': (1024,512), # INPUT AS TUPLE OF NEURONS IN HIDDEN LAYER
+    'critic_hidden_layers': (1024,),
+    'use_lstm': True, # BOOLEAN
     'lstm_size': 1,
     'algorithm':'PPO',
     'batch_size': 32,#201,
@@ -19,8 +21,8 @@ config = {
     'entropy_coef' : 1e-2,
     'max_grad_norm' : 50.0,
     'gamma': 0.99,
-    'trainer_update_frequency': 2, # IN EPISODES PER SIMULATION PROCESS
-    'agent_update_frequency': 1, # IN EPISODES PER SIMULATION PROCESS
+    'trainer_update_frequency': 4, # IN EPISODES PER SIMULATION PROCESS
+    'agent_update_frequency': 2, # IN EPISODES PER SIMULATION PROCESS
     'max_turns_per_game': 200,
     'use_wandb': False
     ## TODO: ADD REST OF THE CONFIG AND SET PARAMS
