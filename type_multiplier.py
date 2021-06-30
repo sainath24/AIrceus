@@ -6,7 +6,8 @@
 EFFECTIVE_MUL = 2
 NORMAL_MUL = 0
 WEAK_MUL = -1
-NO_EFFECT_MUL = -2
+NO_EFFECT_MUL = -4
+# NEGATIVE_EFFECT_MUL = -3
 
 data = {
     'nil': {
@@ -129,8 +130,12 @@ def getMultiplier(type1, type2):
     t2 = type2.lower()
 
     t1_data = data[t1]
+    t2_data = data[t2]
     if t2 in t1_data['effective']:
         return EFFECTIVE_MUL
+    elif t1 in t2_data['effective']: # t1 is weak against t2
+        return NO_EFFECT_MUL
+
     elif t2 in t1_data['weak']:
         return WEAK_MUL
     elif t2 in t1_data['no_effect']:

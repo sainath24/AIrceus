@@ -96,8 +96,8 @@ def get_pokemon_move_adv(move, enemy_pokemon):
         if enemy_pokemon.active:
             multiplier *= ACTIVE_ENEMY_POKEMON_WEIGHT
         adv.append(multiplier)
-    avg = torch.tensor(adv, dtype=torch.float).mean().item()
-    move_type_adv = torch.tensor(normalize_score(avg, -2.0, 2.0), dtype= torch.float)
+    s = torch.tensor(adv, dtype=torch.float).sum().item()
+    move_type_adv = torch.tensor(normalize_score(s, -4.0, 2.0), dtype= torch.float)
     move_type_adv = torch.clamp(move_type_adv, 0.0, 1.0)
 
     return move_type_adv
@@ -146,8 +146,8 @@ def get_pokemon_type_adv(pokemon, enemy_pokemon):
                 multiplier *= ACTIVE_ENEMY_POKEMON_WEIGHT
             pokemon_type_adv.append(multiplier)
     
-    avg = torch.tensor(pokemon_type_adv, dtype=torch.float).mean().item()
-    pokemon_type_adv = torch.tensor(normalize_score(avg, -2.0, 2.0), dtype= torch.float)
+    s = torch.tensor(pokemon_type_adv, dtype=torch.float).sum().item()
+    pokemon_type_adv = torch.tensor(normalize_score(s, -4.0, 2.0), dtype= torch.float)
     # pokemon_type_adv = torch.tensor(normalize_score(avg, -2.66, 2.66), dtype= torch.float) # BECAUSE ACITVE ENEMY WEIGHT = 3
     pokemon_type_adv = torch.clamp(pokemon_type_adv, 0.0, 1.0).item()
     return pokemon_type_adv
