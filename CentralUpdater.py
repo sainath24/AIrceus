@@ -195,7 +195,12 @@ class CentralUpdater:
                 total_policy_loss += policy_loss.item()
                 total_entropy += entropy.item()
 
-                del values, action_log_probs, entropy
+                #approx kl divergence
+                approx_kl = (old_action_log_probs_batch - action_log_probs).mean().item()
+                if config['use_wandb']:
+                    wandb.log({'approx_kl': approx_kl})
+
+                del values, action_log_probs, entropy, approx_kl
 
         num_updates = self.epochs * batch_count
         
