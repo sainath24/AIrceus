@@ -1,7 +1,7 @@
 import torch
 # import logging
 
-def get_reward(new_state, game, enemy_alive):
+def get_reward(new_state, game, enemy_alive, pokemon_alive):
     # NEW STATE HAS SIZE 840, FIRST 420 is agent pokemon, next 420 is enemy pokemon
     # SINCE STATE HAS VALUES OF RANGE [0,1], max is 420, min is 0
     # MAX REWARD IS 420, MIN REWARD IS -420, normalize using these values
@@ -17,10 +17,12 @@ def get_reward(new_state, game, enemy_alive):
     agent_state, enemy_state = torch.split(new_state, int(new_state.size()[0]/2))
     # logging.debug('AGENT STATE SIZE: '+ str(agent_state.size()))
     # logging.debug('ENEMY STATE SIZE: ' +  str(enemy_state.size()))
-    new_enemy_alive = [1 if enemy_state[i]>0 else 0 for i in range(0,enemy_state.size(0),62)]
+    new_enemy_alive = [1 if enemy_state[i]>0 else 0 for i in range(0,enemy_state.size(0), 62)]
+    new_pokemon_alive = [1 if agent_state[i]>0 else 0 for i in range(0, agent_state.size(0), 62)]
     # print(f'New enemy alive: {new_enemy_alive}')
 
     reward = sum([a-b for a,b in zip(enemy_alive, new_enemy_alive)]) * 0.5
+    reward += sum([a-b for a,b in zip(pokemon_alive, new_pokemon_alive)]) * -0.3
 
     # agent_sum = agent_state.sum()
     # enemy_sum = enemy_state.sum()
@@ -41,7 +43,7 @@ def get_reward(new_state, game, enemy_alive):
     elif game.win == 'p2': # AGENT LOST
         # logging.debug('RECEIVE LOSE BONUS')
         # reward += lose_bonus
-        reward = 0
+        reward = -1
         # reward = torch.clamp(torch.tensor(reward), 0.0, 1.0)
         # return reward
     
@@ -53,4 +55,4 @@ def get_reward(new_state, game, enemy_alive):
 
     # logging.debug('REWARD:' + str(reward))
     # print(f'reward: {reward}')
-    return torch.tensor(reward, dtype = torch.float), new_enemy_alive
+    return torch.tensor(reward, dtype = torch.float), new_enemy_alive, new_pokemon_alive
