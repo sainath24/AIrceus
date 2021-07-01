@@ -23,6 +23,7 @@ class Brain:
         self.step = 0
 
         self.enemy_alive = [1] *6
+        self.pokemon_alive = [1] *6
 
         self.algo = None
         if config['algorithm'] == 'PPO':
@@ -43,7 +44,7 @@ class Brain:
 
 
     def compute_rewards(self, state, game):
-        reward, self.enemy_alive = reward_tools.get_reward(state, game, self.enemy_alive)
+        reward, self.enemy_alive, self.pokemon_alive = reward_tools.get_reward(state, game, self.enemy_alive, self.pokemon_alive)
         # if config['use_wandb']:
         #     wandb.log({'rewards': reward})
         self.episode_reward += reward
@@ -52,7 +53,7 @@ class Brain:
 
     def get_action(self, game, must_switch = False):
         state, invalid_actions = self.create_state(game)
-        state = reward_state_tools.get_state(game, self.player_identifier)
+        # state = reward_state_tools.get_state(game, self.player_identifier)
         critic_state = reward_state_tools.get_state(game, self.player_identifier)
         # print('\nSTATE LENGTH: ', state.size())
         # print('\nSTATE: ', state)
@@ -104,5 +105,6 @@ class Brain:
             wandb.log({'episode_rewards': self.episode_reward})
         self.episode_reward = 0
         self.enemy_alive = [1] * 6
+        self.pokemon_alive = [1] * 6
         self.step = 0
 
