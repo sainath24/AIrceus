@@ -2,18 +2,19 @@ config = {
     'model': 'model.pth',
     'optim': 'optim.pth',
     'log': 'game.log',
-    'optim_lr': 1e-5,
+    'actor_lr': 1e-4,
+    'critic_lr': 1e-3,
     'simulations': 1, # NUMBER OF PARALLEL DATA COLLECTORS
     'episodes': 10, # TOTAL NUMBER OF EPISODES THAT WILL BE EQUALLY SPLIT BETWEEN PARALLEL SIMULTIONS
-    'state_size': 732, #157,#840,
-    'critic_state_size': 732,
+    'state_size': 182,#840,
+    'critic_state_size': 744,
     'action_size': 9,#10,
-    'actor_hidden_layers': (1024,512), # INPUT AS TUPLE OF NEURONS IN HIDDEN LAYER
-    'critic_hidden_layers': (1024,),
-    'use_lstm': True, # BOOLEAN
+    'actor_hidden_layers': (512,256), # INPUT AS TUPLE OF NEURONS IN HIDDEN LAYER
+    'critic_hidden_layers': (1024,512),
+    'use_lstm': False, # BOOLEAN
     'lstm_size': 1,
     'algorithm':'PPO',
-    'batch_size': 32,#201,
+    'batch_size': 64,#201,
     # 'num_mini_batches': 5,
     'epochs': 15,
     'clip_param': 0.2,
