@@ -39,7 +39,10 @@ class PPO:
         self.cx = []
 
         self.a2c = NeuralNet(self.state_size, self.critic_state_size, self.action_size, self.lstm_size, self.device)
-        self.optimiser = optim.Adam(self.a2c.parameters(), lr=config['optim_lr'])
+        # self.optimiser = optim.Adam(self.a2c.parameters(), lr=config['optim_lr'])
+        self.optimiser = optim.Adam([{'params':self.a2c.actor.parameters(), 'lr':config['actor_lr']},
+        {'params': self.a2c.critic.parameters(), 'lr': config['critic_lr']}
+        ])
 
         self.gamma = config['gamma']
         

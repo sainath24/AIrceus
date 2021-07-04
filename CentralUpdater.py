@@ -53,7 +53,10 @@ class CentralUpdater:
         self.gamma = config['gamma']
 
         self.model = NeuralNet(self.state_size, self.critic_state_size, self.action_size, self.lstm_size, self.device)
-        self.optimiser = optim.Adam(self.model.parameters(), lr=config['optim_lr'])
+        # self.optimiser = optim.Adam(self.model.parameters(), lr=config['optim_lr'])        
+        self.optimiser = optim.Adam([{'params':self.model.actor.parameters(), 'lr':config['actor_lr']},
+        {'params': self.model.critic.parameters(), 'lr': config['critic_lr']}
+        ])
 
         self.model.to(self.device)
 
