@@ -1,5 +1,6 @@
 import torch
 import type_multiplier
+import status_tools
 # import logging
 
 ACTIVE_ENEMY_POKEMON_WEIGHT = 1
@@ -60,14 +61,15 @@ def get_move_stats_state(move):
 
 def get_status_score(status):
     ''' compute status score of pokemon '''
-    score = 0;
-    for i in status:
-        score = -1
+    score = status_tools.status_score(status)
+    # score = 0;
+    # for i in status:
+    #     score = -1
     
-    score = normalize_score(score, -4.0, 4.0)
-    score = torch.clamp(torch.tensor([score], dtype=torch.float), 0.0, 1.0)
+    # score = normalize_score(score, -4.0, 4.0) # TODO: Redo the normalization
+    # score = torch.clamp(torch.tensor([score], dtype=torch.float), 0.0, 1.0)
 
-    return score
+    return torch.tensor([score], dtype=torch.float)
 
 def get_pokemon_specific_state(pokemon, base):
     '''retrun pokemon specific information'''
@@ -177,17 +179,18 @@ def get_active_pokemon_state(pokemon, enemy_pokemon, base):
     return state
 
 def get_inactive_move_state(move, enemy_pokemon):
+    # TODO: REDO LATER 
     try:
         pp = float(move.current_pp)/float(move.max_pp)
     except Exception as e: # CAN DIVIDE BY ZERO WHEN USING DEFAULT MOVE
         pp = 0.0
     if pp == 0.0 or move.disabled:
-        return None
+        return torch.tensor([0.0], dtype=torch.float)
 
     move_adv = get_pokemon_move_adv(move, enemy_pokemon).item()
 
-    if move_adv == -2:
-        return None
+    # if move_adv == -2:
+    #     return None
 
     stats_state = get_move_stats_state(move)
     stats_score = stats_state.sum().item()
@@ -203,23 +206,23 @@ def get_inactive_move_state(move, enemy_pokemon):
 def get_inactive_pokemon_state(pokemon, enemy_pokemon):
 
     if pokemon.hp == 0.0:
-        return torch.zeros(7, dtype = torch.float)
+        return torch.zeros(12, dtype = torch.float)
 
     type_adv = get_pokemon_type_adv(pokemon, enemy_pokemon)
     status_score = get_status_score(pokemon.status).item()
     stats = get_stats_score(pokemon.stats)
 
-    pokemon_state = torch.tensor([pokemon.hp + type_adv - status_score], dtype = torch.float)
+    pokemon_state = torch.tensor([pokemon.hp, type_adv, status_score], dtype = torch.float)
 
     move_state = torch.tensor([])
     for move in pokemon.moves:
         move_adv = get_inactive_move_state(move, enemy_pokemon)
         if move_adv != None:
             move_state = torch.cat((move_state, move_adv))
-    move_score = move_state.sum().item()
-    move_state = torch.tensor([move_score], dtype = torch.float)
+    # move_score = move_state.sum().item()
+    # move_state = torch.tensor([move_score], dtype = torch.float)
 
-    state = torch.cat((pokemon_state, move_state, stats)) 
+    state = torch.cat((pokemon_state, move_state, stats))
 
     return state
 

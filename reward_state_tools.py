@@ -1,6 +1,7 @@
 import torch
 import type_multiplier
 import logging
+import status_tools
 
 ACTIVE_ENEMY_POKEMON_WEIGHT = 1
 
@@ -60,15 +61,15 @@ def get_move_stats_state(move):
 
 def get_status_score(status):
     ''' compute status score of pokemon '''
-    score = 0;
-    for i in status:
-        score = -1
+    score = status_tools.status_score(status);
+    # for i in status:
+    #     score = -1
     
-    score = normalize_score(score, -4.0, 4.0)
-    score = torch.clamp(torch.tensor([score], dtype=torch.float), 0.0, 1.0)
+    # score = normalize_score(score, -4.0, 4.0)
+    # score = torch.clamp(torch.tensor([score], dtype=torch.float), 0.0, 1.0)
 
 
-    return score
+    return torch.tensor([score], dtype=torch.float)
 
 def get_pokemon_specific_state(pokemon, base):
     '''retrun pokemon specific information'''
