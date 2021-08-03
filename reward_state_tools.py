@@ -2,6 +2,7 @@ import torch
 import type_multiplier
 import logging
 import status_tools
+import field_tools
 
 ACTIVE_ENEMY_POKEMON_WEIGHT = 1
 
@@ -16,16 +17,16 @@ def normalize_score(score, minimum, maximum):
 
 def get_field_score(base):
     ''' calculate score for this pokemon with current #TODO:weather and base conditions'''
-    score = 0
-    for i in base:
-        if i in ['spikes', 'stealthrock', 'toxicspikes']:
-            score -=1
-        else:
-            score += 1 
+    score = field_tools.field_score(base)
+    # for i in base:
+    #     if i in ['spikes', 'stealthrock', 'toxicspikes']:
+    #         score -=1
+    #     else:
+    #         score += 1 
     
-    score = normalize_score(score, minimum= -2.0, maximum= 2.0)
-    score = torch.clamp(torch.tensor([score], dtype = torch.float), 0.0, 1.0)
-    return score
+    # score = normalize_score(score, minimum= -2.0, maximum= 2.0)
+    # score = torch.clamp(torch.tensor([score], dtype = torch.float), 0.0, 1.0)
+    return torch.tensor([score],dtype = torch.float) 
 
 def get_stats_score(stats):
     ''' compute pokemon stats score '''
