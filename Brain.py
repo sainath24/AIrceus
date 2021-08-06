@@ -1,5 +1,4 @@
 import torch
-from torch._C import device
 import torch.nn as nn
 import torch.nn.functional as f
 import torch.optim as optim
@@ -17,7 +16,7 @@ class Brain:
     def __init__(self, player_identifier, train = True) -> None:
         self.player_identifier = player_identifier
         self.train = train 
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device(config['device']) #torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.batch_size = config['batch_size']
         self.episode_reward = 0.0
         self.step = 0
@@ -61,7 +60,7 @@ class Brain:
         state = state.to(self.device)
         with torch.no_grad():
             actor_values, critic_values, _ = self.algo.a2c(state.unsqueeze(0), critic_state.unsqueeze(0))
-        # print('ACTION PROBS BEFORE MASK: ' + str(self.player_identifier) + ' ' + str(actor_values))
+        #print('ACTION PROBS BEFORE MASK: ' + str(self.player_identifier) + ' ' + str(actor_values))
         # print('MASK:', invalid_actions)
         # INVALID ACTION MASKING
         actor_values_clone = torch.clone(actor_values)
@@ -73,7 +72,7 @@ class Brain:
         actor_values_clone = f.softmax(actor_values_clone, dim = -1)
         # logging.debug('ACTION PROBS AFTER MASK: ' + str(self.player_identifier) + ' ' + str(actor_values))
         # if self.train:
-        # print('action probabilities: ', actor_values_clone)
+        #print('action probabilities: ', actor_values_clone)
         actor_probs = Categorical(actor_values_clone)
         action = actor_probs.sample()
         # else:

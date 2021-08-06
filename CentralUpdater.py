@@ -42,7 +42,7 @@ class CentralUpdater:
         self.action_size = config['action_size']
         self.clip_param = config['clip_param']
         self.lstm_size = config['lstm_size']
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device(config['device'])#torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.model_path = config['model']
         self.optim_path = config['optim']

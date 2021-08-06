@@ -2,6 +2,7 @@ config = {
     'model': 'model.pth',
     'optim': 'optim.pth',
     'log': 'game.log',
+    'device': 'cpu', # DEVICE USED FOR PYTORCH TENSORS
     'actor_lr': 1e-4,
     'critic_lr': 1e-3,
     'simulations': 1, # NUMBER OF PARALLEL DATA COLLECTORS
